@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.linkageHandle.mapper.StrategyDeviceRelMapper">
+
+    <insert id="insert" keyColumn="id" keyProperty="id"
+            parameterType="com.dbapp.extension.xdr.linkageHandle.entity.StrategyDeviceRel" useGeneratedKeys="true">
+        insert into t_strategy_device_rel
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="strategyDeviceRelVO.strategyId != null">
+                strategy_id,
+            </if>
+            <if test="strategyDeviceRelVO.deviceId != null and strategyDeviceRelVO.deviceId != ''">
+                device_id,
+            </if>
+            <if test="strategyDeviceRelVO.appId != null and strategyDeviceRelVO.appId != ''">
+                app_id,
+            </if>
+            <if test="strategyDeviceRelVO.linkDeviceIp != null and strategyDeviceRelVO.linkDeviceIp != ''">
+                link_device_ip,
+            </if>
+            <if test="strategyDeviceRelVO.linkDeviceType != null and strategyDeviceRelVO.linkDeviceType != ''">
+                link_device_type,
+            </if>
+            <if test="strategyDeviceRelVO.area != null and strategyDeviceRelVO.area != ''">
+                area,
+            </if>
+            <if test="strategyDeviceRelVO.areaData != null and strategyDeviceRelVO.areaData != ''">
+                area_data,
+            </if>
+            <if test="strategyDeviceRelVO.action != null and strategyDeviceRelVO.action != ''">
+                "action",
+            </if>
+            <if test="strategyDeviceRelVO.actionConfig != null and strategyDeviceRelVO.actionConfig != ''">
+                action_config,
+            </if>
+            <if test="strategyDeviceRelVO.agents != null and strategyDeviceRelVO.agents != ''">
+                agents,
+            </if>
+            create_time,
+            update_time,
+        </trim>
+        values
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="strategyDeviceRelVO.strategyId != null">
+                #{strategyDeviceRelVO.strategyId},
+            </if>
+            <if test="strategyDeviceRelVO.deviceId != null and strategyDeviceRelVO.deviceId != ''">
+                #{strategyDeviceRelVO.deviceId},
+            </if>
+            <if test="strategyDeviceRelVO.appId != null and strategyDeviceRelVO.appId != ''">
+                #{strategyDeviceRelVO.appId},
+            </if>
+            <if test="strategyDeviceRelVO.linkDeviceIp != null and strategyDeviceRelVO.linkDeviceIp != ''">
+                #{strategyDeviceRelVO.linkDeviceIp},
+            </if>
+            <if test="strategyDeviceRelVO.linkDeviceType != null and strategyDeviceRelVO.linkDeviceType != ''">
+                #{strategyDeviceRelVO.linkDeviceType},
+            </if>
+            <if test="strategyDeviceRelVO.area != null and strategyDeviceRelVO.area != ''">
+                #{strategyDeviceRelVO.area},
+            </if>
+            <if test="strategyDeviceRelVO.areaData != null and strategyDeviceRelVO.areaData != ''">
+                #{strategyDeviceRelVO.areaData},
+            </if>
+            <if test="strategyDeviceRelVO.action != null and strategyDeviceRelVO.action != ''">
+                #{strategyDeviceRelVO.action},
+            </if>
+            <if test="strategyDeviceRelVO.actionConfig != null and strategyDeviceRelVO.actionConfig != ''">
+                #{strategyDeviceRelVO.actionConfig},
+            </if>
+            <if test="strategyDeviceRelVO.agents != null and strategyDeviceRelVO.agents != ''">
+                #{strategyDeviceRelVO.agents},
+            </if>
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP,
+        </trim>
+    </insert>
+
+    <insert id="batchInsert">
+        insert into t_strategy_device_rel
+        (strategy_id,device_id,link_device_ip,link_device_type,area,area_data,"action",action_config,create_time,update_time)
+        values
+        <foreach collection="insertList" item="item" index="index" separator=",">
+            (
+                #{item.strategyId},
+                #{item.deviceId},
+                #{item.linkDeviceIp},
+                #{item.linkDeviceType},
+                #{item.area},
+                #{item.areaData},
+                #{item.action},
+                #{item.actionConfig},
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP
+            )
+        </foreach>
+    </insert>
+
+    <update id="update" parameterType="com.dbapp.extension.xdr.linkageHandle.entity.StrategyDeviceRel">
+        update t_strategy_device_rel 
+        <set>
+            <if test="strategyDeviceRelVO.strategyId != null">
+                strategy_id = #{strategyDeviceRelVO.strategyId},
+            </if>
+            <if test="strategyDeviceRelVO.deviceId != null and strategyDeviceRelVO.deviceId != ''">
+                device_id = #{strategyDeviceRelVO.deviceId},
+            </if>
+            <if test="strategyDeviceRelVO.appId != null and strategyDeviceRelVO.appId != ''">
+                app_id = #{strategyDeviceRelVO.appId},
+            </if>
+            <if test="strategyDeviceRelVO.linkDeviceIp != null and strategyDeviceRelVO.linkDeviceIp != ''">
+                link_device_ip = #{strategyDeviceRelVO.linkDeviceIp},
+            </if>
+            <if test="strategyDeviceRelVO.linkDeviceType != null and strategyDeviceRelVO.linkDeviceType != ''">
+                link_device_type = #{strategyDeviceRelVO.linkDeviceType},
+            </if>
+            <if test="strategyDeviceRelVO.area != null and strategyDeviceRelVO.area != ''">
+                area = #{strategyDeviceRelVO.area},
+            </if>
+            <if test="strategyDeviceRelVO.areaData != null and strategyDeviceRelVO.areaData != ''">
+                area_data = #{strategyDeviceRelVO.areaData},
+            </if>
+            <if test="strategyDeviceRelVO.action != null and strategyDeviceRelVO.action != ''">
+                "action" = #{strategyDeviceRelVO.action},
+            </if>
+            <if test="strategyDeviceRelVO.actionConfig != null and strategyDeviceRelVO.actionConfig != ''">
+                action_config = #{strategyDeviceRelVO.actionConfig},
+            </if>
+            update_time = CURRENT_TIMESTAMP
+        </set>
+        where id = #{strategyDeviceRelVO.id}
+    </update>
+
+    <!-- 
+        注意：ON CONFLICT需要指定唯一约束列
+        请根据实际表结构确认冲突列，示例中假设为(strategy_id, device_id)
+    -->
+    <update id="batchInsertOrUpdate" parameterType="java.util.List">
+        <foreach collection="updateList" item="item" index="index" separator=";" >
+            insert into t_strategy_device_rel
+            <trim prefix="(" suffix=")" suffixOverrides=",">
+                <if test="item.strategyId != null">
+                    strategy_id,
+                </if>
+                <if test="item.deviceId != null and item.deviceId != ''">
+                    device_id,
+                </if>
+                <if test="item.appId != null and item.appId != ''">
+                    app_id,
+                </if>
+                <if test="item.linkDeviceIp != null and item.linkDeviceIp != ''">
+                    link_device_ip,
+                </if>
+                <if test="item.linkDeviceType != null and item.linkDeviceType != ''">
+                    link_device_type,
+                </if>
+                <if test="item.area != null and item.area != ''">
+                    area,
+                </if>
+                <if test="item.areaData != null and item.areaData != ''">
+                    area_data,
+                </if>
+                <if test="item.action != null and item.action != ''">
+                    "action",
+                </if>
+                <if test="item.actionConfig != null and item.actionConfig != ''">
+                    action_config,
+                </if>
+                <if test="item.agents != null and item.agents != ''">
+                    agents,
+                </if>
+                create_time,
+                update_time,
+            </trim>
+            values
+            <trim prefix="(" suffix=")" suffixOverrides=",">
+                <if test="item.strategyId != null">
+                    #{item.strategyId},
+                </if>
+                <if test="item.deviceId != null and item.deviceId != ''">
+                    #{item.deviceId},
+                </if>
+                <if test="item.appId != null and item.appId != ''">
+                    #{item.appId},
+                </if>
+                <if test="item.linkDeviceIp != null and item.linkDeviceIp != ''">
+                    #{item.linkDeviceIp},
+                </if>
+                <if test="item.linkDeviceType != null and item.linkDeviceType != ''">
+                    #{item.linkDeviceType},
+                </if>
+                <if test="item.area != null and item.area != ''">
+                    #{item.area},
+                </if>
+                <if test="item.areaData != null and item.areaData != ''">
+                    #{item.areaData},
+                </if>
+                <if test="item.action != null and item.action != ''">
+                    #{item.action},
+                </if>
+                <if test="item.actionConfig != null and item.actionConfig != ''">
+                    #{item.actionConfig},
+                </if>
+                <if test="item.agents != null and item.agents != ''">
+                    #{item.agents},
+                </if>
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP,
+            </trim>
+            ON CONFLICT (strategy_id, device_id) DO UPDATE SET
+            <trim prefix="" suffix="" suffixOverrides=",">
+                update_time = CURRENT_TIMESTAMP,
+                <if test="item.deviceId != null and item.deviceId != ''">
+                    device_id = EXCLUDED.device_id,
+                </if>
+                <if test="item.appId != null and item.appId != ''">
+                    app_id = EXCLUDED.app_id,
+                </if>
+                <if test="item.linkDeviceIp != null and item.linkDeviceIp != ''">
+                    link_device_ip = EXCLUDED.link_device_ip,
+                </if>
+                <if test="item.linkDeviceType != null and item.linkDeviceType != ''">
+                    link_device_type = EXCLUDED.link_device_type,
+                </if>
+                <if test="item.area != null and item.area != ''">
+                    area = EXCLUDED.area,
+                </if>
+                <if test="item.areaData != null and item.areaData != ''">
+                    area_data = EXCLUDED.area_data,
+                </if>
+                <if test="item.action != null and item.action != ''">
+                    "action" = EXCLUDED."action",
+                </if>
+                <if test="item.actionConfig != null and item.actionConfig != ''">
+                    action_config = EXCLUDED.action_config,
+                </if>
+                <if test="item.agents != null and item.agents != ''">
+                    agents = EXCLUDED.agents,
+                </if>
+            </trim>
+        </foreach>
+    </update>
+
+    <delete id="deleteRelByStrategyId" parameterType="java.lang.Long">
+        delete from t_strategy_device_rel where strategy_id = #{strategyId}
+    </delete>
+
+    <delete id="deleteRelByStrategyIdAndDeviceId">
+        delete from t_strategy_device_rel where strategy_id = #{strategyId} and device_id = #{deviceId}
+    </delete>
+
+    <select id="selectById" resultType="com.dbapp.extension.xdr.linkageHandle.entity.StrategyDeviceRel">
+        select * from t_strategy_device_rel where id = #{id}
+    </select>
+
+    <select id="getAlarmStrategyList"
+            resultType="com.dbapp.extension.xdr.linkageHandle.entity.StrategyAlarmInfo">
+        SELECT
+            a.id strategyId,
+            a.strategy_name strategyName,
+            a.auto_handle autoHandle,
+            a.threat_type threatType,
+            a.threat_type_config threatTypeConfig,
+            a.threat_level threatLevel,
+            a.alarm_results alarmResults,
+            a.alarm_names alarmNames,
+            a.status,
+            a.source,
+            b.id,
+            b.device_id deviceId,
+            b.app_id appId,
+            b.link_device_ip linkDeviceIp,
+            b.link_device_type linkDeviceType,
+            b.area,
+            b.area_data areaData,
+            b."action",
+            b.action_config actionConfig,
+            b.agents
+        FROM
+            t_linked_strategy a
+        left join t_strategy_device_rel b on
+            a.id = b.strategy_id
+        WHERE
+ = 1            a.status = true
+            and a.threat_type = #{threatType}
+    </select>
+
+    <select id="findDeviceByStrateId"
+            resultType="com.dbapp.extension.xdr.linkageHandle.entity.StrategyDeviceRel">
+        select * from t_strategy_device_rel where strategy_id = #{strategyId}
+    </select>
+
+    <select id="findStrategyIdByDeviceId" resultType="java.lang.Long">
+        select distinct strategy_id from t_strategy_device_rel where device_id = #{deviceId}
+    </select>
+
+    <select id="getDeviceCount" resultType="java.lang.Integer">
+        select count(device_id) from t_strategy_device_rel where strategy_id = #{strategyId}
+    </select>
+
+    <update id="updateDeviceIpAndId">
+        UPDATE t_strategy_device_rel
+        SET device_id = #{currentDeviceId}, link_device_ip = #{masterHost}
+        WHERE device_id = #{previousDeviceId}
+    </update>
+</mapper>

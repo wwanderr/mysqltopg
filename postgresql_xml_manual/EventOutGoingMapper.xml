@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.outgoingData.mapper.EventOutGoingMapper">
+
+    <insert id="batchInsert" parameterType="com.dbapp.extension.xdr.outgoingData.po.EventOutGoingData" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO t_event_out_going_data (event_code,category,sub_category,threat_severity,incident_name,event_description,start_time,end_time,attacker,victim,
+        dest_address,src_address,request_url,request_domain,dest_port,dest_geo_region,dest_geo_city,dest_geo_county,src_port,src_geo_region,src_geo_city,src_geo_county,
+        alarm_result,event_count,kill_chain,mirror_category,focus,focus_ip,tag_search,time_part,create_time,alarm,incident_description,incident_suggestion)
+        VALUES
+        <foreach collection="list" separator="," item="event">
+            ( #{event.eventCode,jdbcType=VARCHAR},#{event.category,jdbcType=VARCHAR},#{event.subCategory,jdbcType=VARCHAR},#{event.threatSeverity,jdbcType=VARCHAR},
+            #{event.incidentName,jdbcType=VARCHAR},#{event.eventDescription,jdbcType=VARCHAR},CAST(#{event.startTime} AS timestamp),CAST(#{event.endTime} AS timestamp),
+            #{event.attacker,jdbcType=VARCHAR},#{event.victim,jdbcType=VARCHAR},#{event.destAddress,jdbcType=VARCHAR},#{event.srcAddress,jdbcType=VARCHAR},
+            #{event.requestUrl,jdbcType=VARCHAR},#{event.requestDomain,jdbcType=VARCHAR},#{event.destPort,jdbcType=INTEGER},#{event.destGeoRegion,jdbcType=VARCHAR},
+            #{event.destGeoCity,jdbcType=VARCHAR},#{event.destGeoCounty,jdbcType=VARCHAR},#{event.srcPort,jdbcType=INTEGER},#{event.srcGeoRegion,jdbcType=VARCHAR},
+            #{event.srcGeoCity,jdbcType=VARCHAR},#{event.srcGeoCounty,jdbcType=VARCHAR},#{event.alarmResult,jdbcType=VARCHAR},#{event.eventCount,jdbcType=BIGINT},
+            #{event.killChain,jdbcType=VARCHAR},#{event.mirrorCategory,jdbcType=VARCHAR},#{event.focus,jdbcType=VARCHAR},#{event.focusIp,jdbcType=VARCHAR},
+            #{event.tagSearch,jdbcType=VARCHAR},#{event.timePart,jdbcType=VARCHAR},CAST(#{event.createTime} AS timestamp),#{event.alarm,jdbcType=VARCHAR},
+            #{event.incidentDescription,jdbcType=VARCHAR},#{event.incidentSuggestion,jdbcType=VARCHAR}
+            )
+        </foreach>
+        ON CONFLICT (event_code, time_part) DO UPDATE SET
+        threat_severity = EXCLUDED.threat_severity ,event_description = EXCLUDED.event_description,end_time = EXCLUDED.end_time,attacker = EXCLUDED.attacker,
+        victim = EXCLUDED.victim,dest_address = EXCLUDED.dest_address,src_address = EXCLUDED.src_address,request_url = EXCLUDED.request_url,request_domain=EXCLUDED.request_domain,
+        dest_port= EXCLUDED.dest_port,dest_geo_region = EXCLUDED.dest_geo_region,dest_geo_city = EXCLUDED.dest_geo_city,dest_geo_county = EXCLUDED.dest_geo_county,src_port=EXCLUDED.src_port,
+        src_geo_region = EXCLUDED.src_geo_region,src_geo_city = EXCLUDED.src_geo_city,src_geo_county=EXCLUDED.src_geo_county,alarm_result= EXCLUDED.alarm_result,event_count = EXCLUDED.event_count,
+        kill_chain =EXCLUDED.kill_chain,mirror_category= EXCLUDED.mirror_category,focus_ip =EXCLUDED.focus_ip,tag_search= EXCLUDED.tag_search,alarm = EXCLUDED.alarm,incident_description= EXCLUDED.incident_description,incident_suggestion = EXCLUDED.incident_suggestion
+    </insert>
+    <!-- 注意: ON CONFLICT假设(event_code, time_part)是唯一键，请根据实际表结构调整 -->
+</mapper>

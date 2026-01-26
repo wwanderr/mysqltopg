@@ -1,0 +1,517 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatIntelligence.mapper.IntelligenceMapper">
+
+    <insert id="saveOrUpdateBatch" parameterType="com.dbapp.extension.xdr.threatIntelligence.entity.IntelligenceSub" useGeneratedKeys="true" keyColumn="id">
+        INSERT INTO t_intelligence_sub (   end_time,  start_time,  update_time, ioC , sub_category , alarm_name , threat_severity , counts , tag ,
+        alarm_status , event_time, asset_count)
+        VALUES
+        <foreach collection="subList" item="sub" separator=",">
+            (CAST(#{sub.endTime} AS timestamp),CAST(#{sub.startTime} AS timestamp),CAST(#{sub.updateTime} AS timestamp),#{sub.ioC,jdbcType=VARCHAR},#{sub.subCategory,jdbcType=VARCHAR},
+            #{sub.alarmName,jdbcType=VARCHAR},#{sub.threatSeverity,jdbcType=INTEGER},#{sub.counts,jdbcType=BIGINT},#{sub.tag,jdbcType=VARCHAR},#{sub.alarmStatus,jdbcType=INTEGER},CAST(#{sub.eventTime} AS timestamp),
+             (SELECT count(1) FROM t_intelligence_sub_asset WHERE event_time=DATE(CAST(#{sub.eventTime} AS timestamp)) AND ioC=#{sub.ioC,jdbcType=VARCHAR}))
+        </foreach>
+        ON CONFLICT (ioC, event_time) DO UPDATE SET
+        end_time = greatest(EXCLUDED.end_time, end_time),
+        start_time = least(EXCLUDED.start_time, start_time),
+        alarm_status  = EXCLUDED.alarm_status ,
+        counts = counts + EXCLUDED.counts ,
+        update_time = CURRENT_TIMESTAMP,
+        sub_category = CASE WHEN EXCLUDED.end_time >= end_time THEN EXCLUDED.sub_category ELSE sub_category END,
+        alarm_name = CASE WHEN EXCLUDED.end_time >= end_time THEN EXCLUDED.alarm_name ELSE alarm_name END,
+        threat_severity = COALESCE(greatest(EXCLUDED.threat_severity, threat_severity),EXCLUDED.threat_severity,threat_severity),
+        asset_count = EXCLUDED.asset_count,
+        tag = CASE WHEN tag = '' OR tag IS NULL THEN EXCLUDED.tag ELSE tag END
+    </insert>
+
+    <insert id="insertIoCAsset" parameterType="com.dbapp.extension.xdr.threatIntelligence.entity.IntelligenceSub">
+        INSERT INTO t_intelligence_sub_asset
+        (ioC, asset_ip, event_time, start_time, end_time, alarm_status, counts , security_zone)
+        VALUES
+        <foreach collection="subList" item="item" separator=",">
+            (#{item.ioC}, #{item.assetIp}, CAST(#{item.eventTime} AS timestamp), CAST(#{item.startTime} AS timestamp), CAST(#{item.endTime} AS timestamp), #{item.alarmStatus}, #{item.counts} ,#{item.securityZone,jdbcType=VARCHAR})
+        </foreach>
+        ON CONFLICT (ioC, asset_ip, event_time) DO UPDATE SET
+        end_time = greatest(EXCLUDED.end_time, end_time),
+        start_time = least(EXCLUDED.start_time, start_time),
+        alarm_status  = EXCLUDED.alarm_status ,
+        counts = counts + EXCLUDED.counts,
+        security_zone = EXCLUDED.security_zone
+    </insert>
+
+    <select id="listCount" parameterType="java.util.Map" resultType="java.lang.Long">
+    SELECT COUNT(1) FROM
+        <if test="isCrossDay !=null and isCrossDay">
+            (SELECT 1 FROM
+        </if>
+        t_intelligence_sub ts
+        WHERE
+        ts.event_time BETWEEN DATE(CAST(#{startTime} AS timestamp)) AND DATE(CAST(#{endTime} AS timestamp))
+        AND ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        <if test="ioC != null and ioC != ''">
+            AND ts.ioC ILIKE '%' || #{ioC} || '%'
+        </if>
+        <if test="subCategory != null and subCategory.size() > 0">
+            AND ts.sub_category IN
+            <foreach collection="subCategory" open="(" close=")" separator="," index="index" item="category">
+                #{category}
+            </foreach>
+        </if>
+        <if test="threatSeverity != null and threatSeverity.size() > 0">
+            AND ts.threat_severity IN
+            <foreach collection="threatSeverity" open="(" close=")" separator="," index="index" item="severity">
+                #{severity}
+            </foreach>
+        </if>
+        <if test="alarmName != null and alarmName != ''">
+            AND ts.alarm_name ILIKE '%' || #{alarmName} || '%'
+        </if>
+        <if test="tag != null and tag.size() > 0">
+            AND (
+            <foreach collection="tag" item="t" separator="OR" index="index">
+                ts.tag ILIKE '%' || #{t} || '%'
+            </foreach>
+            )
+        </if>
+        <if test="isCrossDay !=null and isCrossDay">
+            GROUP BY ts.ioC)tt
+        </if>
+    </select>
+
+    <select id="list" parameterType="java.util.Map" resultType="java.util.Map">
+    SELECT
+        t.ioC as ioC
+        <choose>
+            <when test="isCrossDay !=null and isCrossDay">
+                ,STRING_AGG(DISTINCT t.sub_category, ',') as subCategory
+                ,STRING_AGG(DISTINCT t.alarm_name, ',') as alarmName
+                ,TO_CHAR(MAX(t.end_time),'YYYY-MM-DD HH24:MI:SS') as endTime
+                ,TO_CHAR(MIN(t.start_time),'YYYY-MM-DD HH24:MI:SS') as startTime
+                ,SUM(ta.counts) as counts
+                ,COUNT(DISTINCT ta.asset_ip ) as assetCount
+                ,COALESCE(STRING_AGG(DISTINCT t.tag, ','),'')tag
+                ,MAX(t.alarm_status) as alarmStatus
+                ,MAX(t.threat_severity) as threatSeverity
+                FROM(SELECT ioC,alarm_name,alarm_status,threat_severity,
+                sub_category,start_time,end_time,tag,counts,asset_count,event_time
+                FROM t_intelligence_sub
+            </when>
+            <otherwise>
+                ,t.sub_category as subCategory
+                ,t.alarm_name as alarmName
+                ,TO_CHAR(t.end_time,'YYYY-MM-DD HH24:MI:SS') as endTime
+                ,TO_CHAR(t.start_time,'YYYY-MM-DD HH24:MI:SS') as startTime
+                ,t.counts as counts
+                ,t.asset_count as assetCount
+                ,COALESCE(t.tag,'')tag
+                ,t.alarm_status as alarmStatus
+                ,t.threat_severity as threatSeverity
+                FROM t_intelligence_sub t
+            </otherwise>
+        </choose>
+        WHERE
+        event_time BETWEEN DATE(CAST(#{startTime} AS timestamp)) AND DATE(CAST(#{endTime} AS timestamp))
+        AND end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        <if test="ioC != null and ioC != ''">
+            AND ioC ILIKE '%' || #{ioC} || '%'
+        </if>
+        <if test="subCategory != null and subCategory.size() > 0">
+            AND sub_category IN
+            <foreach collection="subCategory" open="(" close=")" separator="," index="index" item="category">
+                #{category}
+            </foreach>
+        </if>
+        <if test="threatSeverity != null and threatSeverity.size() > 0">
+            AND threat_severity IN
+            <foreach collection="threatSeverity" open="(" close=")" separator="," index="index" item="severity">
+                #{severity}
+            </foreach>
+        </if>
+        <if test="tag != null and tag.size() > 0">
+            AND (
+            <foreach collection="tag" item="t" separator="OR" index="index">
+                tag ILIKE '%' || #{t} || '%'
+            </foreach>
+            )
+        </if>
+        <if test="alarmName != null and alarmName != ''">
+            AND alarm_name ILIKE '%' || #{alarmName} || '%'
+        </if>
+        <if test="isCrossDay !=null and isCrossDay">
+            ORDER BY end_time DESC)t
+            INNER JOIN t_intelligence_sub_asset ta
+            ON t.event_time=ta.event_time
+            AND t.ioC = ta.ioC
+            GROUP BY t.ioC
+        </if>
+    ORDER BY
+        <choose>
+            <when test="order != null and order !=''">
+                <choose>
+                    <when test="orderField =='tag'">
+                        tag
+                    </when>
+                    <when test="orderField =='counts'">
+                        counts
+                    </when>
+                    <when test="orderField =='threatSeverity'">
+                        threatSeverity
+                    </when>
+                    <when test="orderField =='assetCount'">
+                        assetCount
+                    </when>
+                    <otherwise>
+                        endTime
+                    </otherwise>
+                </choose>
+                <choose>
+                    <when test="orderType =='DESC'">
+                        DESC
+                    </when>
+                    <otherwise>
+                        ASC
+                    </otherwise>
+                </choose>
+            </when>
+            <otherwise>
+               endTime DESC
+            </otherwise>
+        </choose>
+    <if test="page != null and page > 0">
+        LIMIT #{size,jdbcType=INTEGER} OFFSET #{page,jdbcType=INTEGER}
+    </if>
+    </select>
+
+    <update id="updateAssetList" parameterType="java.util.Map">
+        UPDATE t_intelligence_sub_asset ts
+        SET ts.alarm_status = #{alarmStatusWeight,jdbcType=INTEGER}
+        WHERE
+        ts.event_time BETWEEN DATE(CAST(#{startTime} AS timestamp)) AND DATE(CAST(#{endTime} AS timestamp))
+        AND ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        AND ts.ioC IN
+        <foreach collection="ioC" open="(" close=")" index="index" item="ioc" separator=",">
+            #{ioc}
+        </foreach>
+        <if test="assetIp != null and assetIp.size() >0">
+            AND ts.asset_ip IN
+            <foreach collection="assetIp" open="(" close=")" index="index" item="ip" separator=",">
+                #{ip}
+            </foreach>
+        </if>
+    </update>
+
+    <update id="updateListFromAsset" parameterType="java.util.Map">
+        UPDATE t_intelligence_sub ts
+        SET ts.alarm_status = (SELECT MAX(ta.alarm_status) FROM t_intelligence_sub_asset ta WHERE ta.event_time=ts.event_time AND ta.ioC=ts.ioC)
+        WHERE
+        ts.event_time BETWEEN DATE(CAST(#{startTime} AS timestamp)) AND DATE(CAST(#{endTime} AS timestamp))
+        AND ts.ioC IN
+        <foreach collection="ioC" open="(" close=")" index="index" item="ioc" separator=",">
+            #{ioc}
+        </foreach>
+    </update>
+
+    <update id="updateList" parameterType="java.util.Map">
+        UPDATE t_intelligence_sub ts
+        SET ts.alarm_status = #{alarmStatusWeight,jdbcType=INTEGER}
+        WHERE
+        ts.event_time BETWEEN DATE(CAST(#{startTime} AS timestamp)) AND DATE(CAST(#{endTime} AS timestamp))
+        AND ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        AND ts.ioC IN
+        <foreach collection="ioC" open="(" close=")" index="index" item="ioc" separator=",">
+            #{ioc}
+        </foreach>
+    </update>
+
+
+    <select id="partExport" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        t.ioC as ioC
+        <choose>
+            <when test="isCrossDay !=null and isCrossDay">
+                ,STRING_AGG(DISTINCT t.sub_category, ',') as subCategory
+                ,STRING_AGG(DISTINCT t.alarm_name, ',') as alarmName
+                ,TO_CHAR(MAX(t.end_time),'YYYY-MM-DD HH24:MI:SS') as endTime
+                ,TO_CHAR(MIN(t.start_time),'YYYY-MM-DD HH24:MI:SS') as startTime
+                ,SUM(ta.counts) as counts
+                ,COUNT(DISTINCT ta.asset_ip ) as assetCount
+                ,COALESCE(STRING_AGG(DISTINCT t.tag, ','),'')tag
+                ,MAX(t.alarm_status) as alarmStatus
+                ,MAX(t.threat_severity) as threatSeverity
+                FROM(SELECT ioC,alarm_name,alarm_status,threat_severity,
+                sub_category,start_time,end_time,tag,counts,asset_count,event_time
+                FROM t_intelligence_sub
+            </when>
+            <otherwise>
+                ,t.sub_category as subCategory
+                ,t.alarm_name as alarmName
+                ,TO_CHAR(t.end_time,'YYYY-MM-DD HH24:MI:SS') as endTime
+                ,TO_CHAR(t.start_time,'YYYY-MM-DD HH24:MI:SS') as startTime
+                ,t.counts as counts
+                ,t.asset_count as assetCount
+                ,COALESCE(t.tag,'')tag
+                ,t.alarm_status as alarmStatus
+                ,t.threat_severity as threatSeverity
+                FROM t_intelligence_sub t
+            </otherwise>
+        </choose>
+        WHERE
+        event_time BETWEEN DATE(CAST(#{startTime} AS timestamp)) AND DATE(CAST(#{endTime} AS timestamp))
+        AND end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        <if test="ioC != null and ioC != ''">
+            AND ioC IN
+            <foreach collection="ioC" open="(" close=")" separator="," index="index" item="cc">
+                #{cc}
+            </foreach>
+        </if>
+        <if test="subCategory != null and subCategory.size() > 0">
+            AND sub_category IN
+            <foreach collection="subCategory" open="(" close=")" separator="," index="index" item="category">
+                #{category}
+            </foreach>
+        </if>
+        <if test="threatSeverity != null and threatSeverity.size() > 0">
+            AND threat_severity IN
+            <foreach collection="threatSeverity" open="(" close=")" separator="," index="index" item="severity">
+                #{severity}
+            </foreach>
+        </if>
+        <if test="tag != null and tag.size() > 0">
+            AND (
+            <foreach collection="tag" item="t" separator="OR" index="index">
+                tag ILIKE '%' || #{t} || '%'
+            </foreach>
+            )
+        </if>
+        <if test="alarmName != null and alarmName != ''">
+            AND alarm_name ILIKE '%' || #{alarmName} || '%'
+        </if>
+        <if test="isCrossDay !=null and isCrossDay">
+            ORDER BY end_time DESC)t
+            INNER JOIN t_intelligence_sub_asset ta
+            ON t.event_time=ta.event_time
+            AND t.ioC = ta.ioC
+            GROUP BY t.ioC
+        </if>
+        ORDER BY
+        <choose>
+            <when test="order != null and order !=''">
+                <choose>
+                    <when test="orderField =='tag'">
+                        tag
+                    </when>
+                    <when test="orderField =='counts'">
+                        counts
+                    </when>
+                    <when test="orderField =='threatSeverity'">
+                        threatSeverity
+                    </when>
+                    <when test="orderField =='assetCount'">
+                        assetCount
+                    </when>
+                    <otherwise>
+                        endTime
+                    </otherwise>
+                </choose>
+                <choose>
+                    <when test="orderType =='DESC'">
+                        DESC
+                    </when>
+                    <otherwise>
+                        ASC
+                    </otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                endTime DESC
+            </otherwise>
+        </choose>
+        LIMIT #{size,jdbcType=INTEGER} OFFSET #{page,jdbcType=INTEGER}
+    </select>
+
+
+    <select id="proportion" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        ts.sub_category as classType,
+        SUM(ts.counts) as number
+        FROM
+        t_intelligence_sub ts
+        WHERE
+        ts.event_time BETWEEN DATE(CAST(#{startTime} AS timestamp)) AND DATE(CAST(#{endTime} AS timestamp))
+        AND ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        <if test="ioC != null and ioC != ''">
+            AND ts.ioC ILIKE '%' || #{ioC} || '%'
+        </if>
+        <if test="subCategory != null and subCategory.size() > 0">
+            AND ts.sub_category IN
+            <foreach collection="subCategory" open="(" close=")" separator="," index="index" item="category">
+                #{category}
+            </foreach>
+        </if>
+        <if test="threatSeverity != null and threatSeverity.size() > 0">
+            AND ts.threat_severity IN
+            <foreach collection="threatSeverity" open="(" close=")" separator="," index="index" item="severity">
+                #{severity}
+            </foreach>
+        </if>
+        <if test="tag != null and tag.size() > 0">
+            AND (
+            <foreach collection="tag" item="t" separator="OR" index="index">
+                ts.tag ILIKE '%' || #{t} || '%'
+            </foreach>
+            )
+        </if>
+        <if test="alarmName != null and alarmName != ''">
+            AND ts.alarm_name ILIKE '%' || #{alarmName} || '%'
+        </if>
+        GROUP BY ts.sub_category
+        ORDER BY counts DESC
+    </select>
+
+    <select id="top5" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        ts.ioC as ioC,
+        SUM(ts.counts) as counts
+        FROM
+        t_intelligence_sub ts
+        WHERE
+        ts.event_time BETWEEN DATE(CAST(#{startTime} AS timestamp)) AND DATE(CAST(#{endTime} AS timestamp))
+        AND ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        <if test="ioC != null and ioC != ''">
+            AND ts.ioC ILIKE '%' || #{ioC} || '%'
+        </if>
+        <if test="subCategory != null and subCategory.size() > 0">
+            AND ts.sub_category IN
+            <foreach collection="subCategory" open="(" close=")" separator="," index="index" item="category">
+                #{category}
+            </foreach>
+        </if>
+        <if test="threatSeverity != null and threatSeverity.size() > 0">
+            AND ts.threat_severity IN
+            <foreach collection="threatSeverity" open="(" close=")" separator="," index="index" item="severity">
+                #{severity}
+            </foreach>
+        </if>
+        <if test="tag != null and tag.size() > 0">
+            AND (
+            <foreach collection="tag" item="t" separator="OR" index="index">
+                ts.tag ILIKE '%' || #{t} || '%'
+            </foreach>
+            )
+        </if>
+        <if test="alarmName != null and alarmName != ''">
+            AND ts.alarm_name ILIKE '%' || #{alarmName} || '%'
+        </if>
+        GROUP BY ts.ioC
+        ORDER BY counts DESC
+        LIMIT 5
+    </select>
+
+    <select id="subListCount" parameterType="java.util.Map" resultType="java.lang.Long">
+        SELECT COUNT(1) FROM
+        <if test="isCrossDay !=null and isCrossDay">
+            (SELECT 1 FROM
+        </if>
+        t_intelligence_sub_asset ts
+        WHERE
+        ts.event_time BETWEEN DATE(CAST(#{startTime} AS timestamp)) AND DATE(CAST(#{endTime} AS timestamp))
+        <if test="ioC != null and ioC != ''">
+            AND ts.ioC = #{ioC}
+        </if>
+        <if test="isCrossDay !=null and isCrossDay">
+            GROUP BY ts.asset_ip)tt
+        </if>
+    </select>
+
+    <select id="subList" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        ts.asset_ip as assetIp,
+        ti.assetName,
+        ti.assetType,
+        ts.ioC as ioC
+        <choose>
+            <when test="isCrossDay !=null and isCrossDay">
+                ,COALESCE(MAX(ts.tag),'') as tag
+                ,MAX(ts.alarm_status) as alarmStatus
+                ,TO_CHAR(MAX(ts.end_time),'YYYY-MM-DD HH24:MI:SS') as endTime
+                ,TO_CHAR(MIN(ts.start_time),'YYYY-MM-DD HH24:MI:SS') as startTime
+                ,SUM(ts.counts) as counts
+                ,CASE WHEN ts.security_zone != '' THEN ts.security_zone ELSE CASE WHEN f."name" IS NULL THEN '' ELSE 'zone_name:' || f."name" END END AS securityZone
+            </when>
+            <otherwise>
+                ,COALESCE(ts.tag,'') as tag
+                ,ts.alarm_status as alarmStatus
+                ,TO_CHAR(ts.end_time,'YYYY-MM-DD HH24:MI:SS') as endTime
+                ,TO_CHAR(ts.start_time,'YYYY-MM-DD HH24:MI:SS') as startTime
+                ,ts.counts as counts
+                ,CASE WHEN ts.security_zone != '' THEN ts.security_zone ELSE CASE WHEN f."name" IS NULL THEN '' ELSE 'zone_name:' || f."name" END END AS securityZone
+            </otherwise>
+        </choose>
+        FROM
+        t_intelligence_sub_asset ts
+        LEFT JOIN t_asset_info ti ON ts.asset_ip = ti.assetIp
+        LEFT JOIN t_ailpha_network_segment e ON e.relation_type = 'SECURITY_ZONE'
+        AND ti.assetIpNum BETWEEN e.first_ip
+        AND e.last_ip
+        LEFT JOIN t_ailpha_security_zone f ON e.relation_id = f.id
+        WHERE
+        ts.event_time BETWEEN DATE(CAST(#{startTime} AS timestamp)) AND DATE(CAST(#{endTime} AS timestamp))
+        <if test="ioC != null and ioC != ''">
+            AND ts.ioC = #{ioC}
+        </if>
+        <if test="assetIp != null and assetIp.size() > 0">
+            AND ts.asset_ip IN
+            <foreach collection="assetIp" separator=","  open="(" close=")" item="ip">
+                #{ip}
+            </foreach>
+        </if>
+        <if test="isCrossDay !=null and isCrossDay">
+            GROUP BY ts.asset_ip
+        </if>
+        ORDER BY
+        <choose>
+            <when test="order != null and order !=''">
+                <choose>
+                    <when test="orderField =='tag'">
+                        tag
+                    </when>
+                    <when test="orderField =='counts'">
+                        counts
+                    </when>
+                    <otherwise>
+                        endTime
+                    </otherwise>
+                </choose>
+                <choose>
+                    <when test="orderType =='DESC'">
+                        DESC
+                    </when>
+                    <otherwise>
+                        ASC
+                    </otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                endTime DESC
+            </otherwise>
+        </choose>
+        LIMIT #{size,jdbcType=INTEGER} OFFSET #{page,jdbcType=INTEGER}
+    </select>
+
+    <update id="updateTag" parameterType="com.dbapp.extension.xdr.threatIntelligence.entity.IntelligenceSub">
+        UPDATE t_intelligence_sub SET tag = #{tag,jdbcType=VARCHAR}
+        WHERE
+            ioC = #{ioC,jdbcType=VARCHAR}
+          AND
+            event_time = DATE(CAST(#{eventTime} AS timestamp))
+    </update>
+    <update id="updateAssetTag" parameterType="com.dbapp.extension.xdr.threatIntelligence.entity.IntelligenceSub">
+        UPDATE t_intelligence_sub_asset SET tag = #{tag,jdbcType=VARCHAR}
+        WHERE
+        ioC = #{ioC,jdbcType=VARCHAR}
+        AND
+        asset_ip = #{assetIp,jdbcType=VARCHAR}
+        AND
+        event_time = DATE(CAST(#{eventTime} AS timestamp))
+    </update>
+</mapper>

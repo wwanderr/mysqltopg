@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.linkageHandle.mapper.KillProcessHistoryMapper">
+
+    <insert id="batchInsert">
+        INSERT into t_process_kill_history (
+        strategy_id,
+        strategy_name,
+        node_ip,
+        node_id,
+        os_str,
+        device_ip,
+        device_id,
+        device_type,
+        action,
+        process_id,
+        image,
+        source
+        )
+        VALUES
+        <foreach collection="list" item="item" index="index" close="" open="" separator=",">
+            (
+            #{item.strategyId},
+            #{item.strategyName},
+            #{item.nodeIp},
+            #{item.nodeId},
+            #{item.osStr},
+            #{item.deviceIp},
+            #{item.deviceId},
+            #{item.deviceType},
+            #{item.action},
+            #{item.processId},
+            #{item.image},
+            #{item.source}
+            )
+        </foreach>
+    </insert>
+    <select id="countLaunchTimesByStrategyId" resultType="com.dbapp.extension.xdr.linkageHandle.entity.BaseHistoryVO">
+        SELECT strategy_id, SUM(1) AS `count`
+        FROM t_process_kill_history
+        WHERE strategy_id IN
+        <foreach collection='strategyIds' item='strategyId' open='(' close=')' index='index' separator=','>
+            #{strategyId}
+        </foreach>
+        GROUP BY strategy_id;
+    </select>
+</mapper>

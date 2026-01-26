@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.linkageHandle.mapper.SecurityAlarmHandleMapper">
+
+    <insert id="insertOrUpdate" parameterType="com.dbapp.extension.xdr.linkageHandle.entity.SecurityAlarmHandle">
+        insert into t_security_alarm_handle
+        (agg_condition, window_id,execute_time,handle_status,"result")
+        values
+        <foreach collection="handleList" item="item" separator=",">
+            (
+            #{item.aggCondition,jdbcType=VARCHAR},
+            #{item.windowId,jdbcType=VARCHAR},
+            #{item.executeTime,jdbcType=VARCHAR},
+            #{item.handleStatus,jdbcType=VARCHAR},
+            #{item.result,jdbcType=INTEGER}
+            )
+        </foreach>
+        ON CONFLICT (agg_condition, window_id) DO UPDATE SET execute_time = EXCLUDED.execute_time
+    </insert>
+
+    <update id="updateStatusById" parameterType="com.dbapp.extension.xdr.linkageHandle.entity.SecurityAlarmHandle">
+        UPDATE t_security_alarm_handle SET "result" = #{securityAlarmHandle.result,jdbcType=INTEGER} WHERE id = #{securityAlarmHandle.id}
+    </update>
+</mapper>

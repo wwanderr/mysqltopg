@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.outgoingData.mapper.EventOutGoingMapper">
+
+    <insert id="batchInsert" parameterType="com.dbapp.extension.xdr.outgoingData.po.EventOutGoingData" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO t_event_out_going_data (event_code,category,sub_category,threat_severity,incident_name,event_description,start_time,end_time,attacker,victim,
+        dest_address,src_address,request_url,request_domain,dest_port,dest_geo_region,dest_geo_city,dest_geo_county,src_port,src_geo_region,src_geo_city,src_geo_county,
+        alarm_result,event_count,kill_chain,mirror_category,focus,focus_ip,tag_search,time_part,create_time,alarm,incident_description,incident_suggestion)
+        VALUES
+        <foreach collection="list" separator="," item="event">
+            ( #{event.eventCode,jdbcType=VARCHAR},#{event.category,jdbcType=VARCHAR},#{event.subCategory,jdbcType=VARCHAR},#{event.threatSeverity,jdbcType=VARCHAR},
+            #{event.incidentName,jdbcType=VARCHAR},#{event.eventDescription,jdbcType=VARCHAR},#{event.startTime,jdbcType=VARCHAR},#{event.endTime,jdbcType=VARCHAR},
+            #{event.attacker,jdbcType=VARCHAR},#{event.victim,jdbcType=VARCHAR},#{event.destAddress,jdbcType=VARCHAR},#{event.srcAddress,jdbcType=VARCHAR},
+            #{event.requestUrl,jdbcType=VARCHAR},#{event.requestDomain,jdbcType=VARCHAR},#{event.destPort,jdbcType=INTEGER},#{event.destGeoRegion,jdbcType=VARCHAR},
+            #{event.destGeoCity,jdbcType=VARCHAR},#{event.destGeoCounty,jdbcType=VARCHAR},#{event.srcPort,jdbcType=INTEGER},#{event.srcGeoRegion,jdbcType=VARCHAR},
+            #{event.srcGeoCity,jdbcType=VARCHAR},#{event.srcGeoCounty,jdbcType=VARCHAR},#{event.alarmResult,jdbcType=VARCHAR},#{event.eventCount,jdbcType=BIGINT},
+            #{event.killChain,jdbcType=VARCHAR},#{event.mirrorCategory,jdbcType=VARCHAR},#{event.focus,jdbcType=VARCHAR},#{event.focusIp,jdbcType=VARCHAR},
+            #{event.tagSearch,jdbcType=VARCHAR},#{event.timePart,jdbcType=VARCHAR},#{event.createTime,jdbcType=VARCHAR},#{event.alarm,jdbcType=VARCHAR},
+            #{event.incidentDescription,jdbcType=VARCHAR},#{event.incidentSuggestion,jdbcType=VARCHAR}
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        threat_severity = values (threat_severity) ,event_description = values (event_description),end_time = values (end_time),attacker = values (attacker),
+        victim = values (victim),dest_address = values (dest_address),src_address = values (src_address),request_url = values (request_url),request_domain=values (request_domain),
+        dest_port= values (dest_port),dest_geo_region = values (dest_geo_region),dest_geo_city = values (dest_geo_city),dest_geo_county = values (dest_geo_county),src_port=values (src_port),
+        src_geo_region = values (src_geo_region),src_geo_city = values (src_geo_city),src_geo_county=values (src_geo_county),alarm_result= values (alarm_result),event_count = values (event_count),
+        kill_chain =values (kill_chain),mirror_category= values (mirror_category),focus_ip =values (focus_ip),tag_search= values (tag_search),alarm = values (alarm),incident_description= values (incident_description),incident_suggestion = values (incident_suggestion)
+    </insert>
+</mapper>

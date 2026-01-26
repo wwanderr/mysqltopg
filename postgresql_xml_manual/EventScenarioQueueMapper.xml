@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.EventScenarioQueueMapper">
+    <resultMap id="baseResultMap" type="com.dbapp.extension.xdr.threatMonitor.entity.ScenarioWrapper">
+        <result column="security_event_Id" property="securityEventId" jdbcType="BIGINT"/>
+        <result column="scenario_template_id" property="scenarioTemplateId" jdbcType="VARCHAR"/>
+        <result column="focus_ip" property="focusIp" jdbcType="VARCHAR"/>
+        <result column="target_ip" property="targetIp" jdbcType="VARCHAR"/>
+        <result column="event_code" property="eventCode" jdbcType="VARCHAR"/>
+        <result column="src_address" property="srcAddress" jdbcType="VARCHAR"/>
+        <result column="dest_address" property="destAddress" jdbcType="VARCHAR"/>
+        <result column="time_part" property="timePart" jdbcType="VARCHAR"/>
+        <result column="alarm_info" property="alarmInfoList" jdbcType="VARCHAR" typeHandler="com.dbapp.extension.xdr.handler.JSONListHandler" javaType="com.dbapp.extension.xdr.logCorrelation.entity.AlarmInfo"/>
+        <result column="start_time" property="startTime" jdbcType="TIMESTAMP"/>
+        <result column="end_time" property="endTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insertIgnore">
+        INSERT INTO t_event_scenario_queue
+        (focus_ip, target_ip, event_code, scenario_template_id,
+        src_address, dest_address, start_time, end_time, alarm_info, time_part)
+        VALUES
+        <foreach collection="datas" item="data" separator=",">
+            (#{data.focusIp}, #{data.targetIp}, #{data.eventCode}, #{data.scenarioTemplateId},
+            #{data.srcAddress}, #{data.destAddress}, CAST(#{data.startTime} AS timestamp), CAST(#{data.endTime} AS timestamp), #{data.alarmInfoList,typeHandler=com.dbapp.extension.xdr.handler.JSONListHandler,javaType=com.dbapp.extension.xdr.logCorrelation.entity.AlarmInfo}, #{data.timePart})
+        </foreach>
+        ON CONFLICT (focus_ip, target_ip, event_code, scenario_template_id) DO NOTHING
+    </insert>
+    <!-- 注意: ON CONFLICT假设(focus_ip, target_ip, event_code, scenario_template_id)是唯一键 -->
+
+    <select id="selectLast" resultMap="baseResultMap">
+        SELECT t.*,i.id security_event_Id FROM t_event_scenario_queue t INNER JOIN t_security_incidents i
+        ON t.event_code = i.event_code
+        WHERE t.is_job_commit=false ORDER BY t.create_time DESC LIMIT 1000
+    </select>
+
+    <update id="updateSyncSuccessBatch">
+        UPDATE t_event_scenario_queue SET is_job_commit =true WHERE (focus_ip, target_ip, event_code, scenario_template_id ) IN
+        <foreach collection="datas" item="data" open="(" close=")" separator=",">
+            (#{data.focusIp}, #{data.targetIp}, #{data.eventCode}, #{data.scenarioTemplateId})
+        </foreach>
+    </update>
+
+    <delete id="tryClean">
+        DELETE FROM t_event_scenario_queue
+        USING t_security_incidents i
+        WHERE t_event_scenario_queue.event_code=i.event_code
+        AND t_event_scenario_queue.create_time &lt; CAST(CAST(#{time} AS timestamp) AS timestamp) 
+        AND (t_event_scenario_queue.is_job_commit=true OR i.event_code IS NULL)
+    </delete>
+    <!-- 注意: PostgreSQL的DELETE JOIN语法使用USING，且表别名在WHERE中引用时不需要前缀 -->
+</mapper>

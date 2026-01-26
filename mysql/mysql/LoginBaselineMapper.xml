@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatAnalysis.mapper.LoginBaselineMapper">
+
+    <delete id="cleanOvertimeData">
+        delete from t_scene_login_baseline where TIMESTAMPDIFF(hour,last_login_time,NOW()) > #{overtimeHour}
+    </delete>
+
+    <delete id="insertOrUpdate">
+        insert into t_scene_login_baseline(dest_address, src_user_name, last_login_time, city_counts, city_array, create_time, update_time)
+        values
+        <foreach collection="baselineList" separator="," item="item" >
+            (#{item.destAddress},#{item.srcUserName},#{item.lastLoginTime},#{item.cityCounts},#{item.cityArray},#{item.createTime},now())
+        </foreach>
+        on duplicate key update
+        last_login_time=VALUES(`last_login_time`),
+        city_counts=VALUES(`city_counts`),
+        city_array=VALUES(`city_array`),
+        update_time=VALUES(`update_time`),
+        create_time=create_time
+    </delete>
+
+    <select id="queryByPrimaryKey" resultType="com.dbapp.extension.xdr.threatAnalysis.entity.LoginBaseline">
+        select * from t_scene_login_baseline where(dest_address,src_user_name) in
+        <foreach collection="baselineList" separator="," open="(" close=")" item="item">
+            (#{item.destAddress},#{item.srcUserName})
+        </foreach>
+    </select>
+</mapper>

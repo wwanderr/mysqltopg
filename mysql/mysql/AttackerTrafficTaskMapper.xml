@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.AttackerTrafficTaskMapper">
+
+    <insert id="saveOrIgnoreBatch">
+        insert ignore into t_attacker_traffic_task
+        (ip, date_part, start_time, time_offset, history_time_offset, is_init)
+        VALUES
+        <foreach collection="tasks" item="task" separator=",">
+            (#{task.ip}, #{task.datePart}, #{task.startTime}, #{task.timeOffset},
+            #{task.historyTimeOffset}, #{task.isInit})
+        </foreach>
+    </insert>
+</mapper>

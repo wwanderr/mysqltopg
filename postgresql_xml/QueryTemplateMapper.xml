@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    自动转换说明：
+    - 原文件: QueryTemplateMapper.xml
+    - 转换时间: 2026-01-19 11:04:29
+    - MySQL → PostgreSQL 16.x
+    
+    注意事项：
+    1. ON CONFLICT子句可能需要手动指定冲突列
+    2. LIKE已保留，如需不区分大小写请改为ILIKE
+    3. 建议人工review后再部署到生产环境
+-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.QueryTemplateMapper">
+
+    <resultMap id="baseResultMap" type="com.dbapp.extension.xdr.threatMonitor.entity.SecurityEventTemplate">
+       <id column="id" property="id" jdbcType="INTEGER"/>
+       <result column="template_name" property="templateName" jdbcType="VARCHAR"/>
+       <result column="template_code" property="templateCode" jdbcType="VARCHAR"/>
+       <result column="attack_conclusion" property="attackConclusion" jdbcType="VARCHAR"/>
+       <result column="ck_query_condition" property="ckQueryCondition" jdbcType="VARCHAR"/>
+       <result column="ck_query_field" property="ckQueryField" jdbcType="VARCHAR"/>
+       <result column="ck_query_agg_field" property="ckQueryAggField" jdbcType="VARCHAR"/>
+       <result column="interval_time" property="intervalTime" jdbcType="VARCHAR"/>
+       <result column="description" property="description" jdbcType="VARCHAR"/>
+       <result column="suggestion" property="suggestion" jdbcType="VARCHAR"/>
+       <result column="record_field" property="recordField" jdbcType="VARCHAR"/>
+       <result column="last_execute_time" property="lastExecuteTime" jdbcType="TIMESTAMP"/>
+       <result column="agg_field" property="aggField" jdbcType="VARCHAR"/>
+       <result column="inner_query_field" property="innerQueryField" jdbcType="VARCHAR"/>
+       <result column="outer_query_field" property="outerQueryField" jdbcType="VARCHAR"/>
+       <result column="enable" property="enable" jdbcType="TINYINT"/>
+       <result column="is_thread" property="isThread" jdbcType="TINYINT"/>
+       <result column="category" property="category" jdbcType="VARCHAR"/>
+       <result column="sub_category" property="subCategory" jdbcType="VARCHAR"/>
+    </resultMap>
+    <select id="queryAllTemplate" resultMap="baseResultMap">
+         SELECT
+            id,template_name,template_code,attack_conclusion,ck_query_condition,ck_query_field,ck_query_agg_field,interval_time,description,
+            suggestion,record_field,last_execute_time,agg_field,inner_query_field,
+            outer_query_field,enable,is_thread,category,sub_category
+         FROM
+             t_query_template
+         WHERE enable = 1;
+    </select>
+
+    <update id="updateById" parameterType="com.dbapp.extension.xdr.threatMonitor.entity.SecurityEventTemplate">
+        UPDATE t_query_template SET last_execute_time = CAST(#{lastExecuteTime} AS timestamp) WHERE id = #{id,jdbcType=INTEGER}
+    </update>
+
+    <select id="queryTemplateById" parameterType="java.lang.String" resultMap="baseResultMap">
+        SELECT
+            id,template_name,template_code,attack_conclusion,ck_query_condition,ck_query_field,ck_query_agg_field,interval_time,description,
+            suggestion,record_field,last_execute_time,agg_field,inner_query_field,
+            outer_query_field,enable,is_thread,category,sub_category
+         FROM
+             t_query_template
+         WHERE enable = 1
+         AND id = #{templateId};
+    </select>
+</mapper>

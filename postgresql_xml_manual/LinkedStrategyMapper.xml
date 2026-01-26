@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.linkageHandle.mapper.LinkedStrategyMapper">
+
+    <insert id="insertOrUpdate" keyColumn="id" keyProperty="id"
+            parameterType="com.dbapp.extension.xdr.linkageHandle.entity.LinkedStrategy" useGeneratedKeys="true">
+        INSERT INTO t_linked_strategy
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="linkedStrategyVO.id != null and  linkedStrategyVO.id >0 ">
+                id,
+            </if>
+            <if test="linkedStrategyVO.strategyName != null and linkedStrategyVO.strategyName != ''">
+                strategy_name,
+            </if>
+            <if test="linkedStrategyVO.threatType != null and linkedStrategyVO.threatType != ''">
+                threat_type,
+            </if>
+            <if test="linkedStrategyVO.threatTypeConfig != null and linkedStrategyVO.threatTypeConfig != ''">
+                threat_type_config,
+            </if>
+            <if test="linkedStrategyVO.status != null">
+                "status",
+            </if>
+            <if test="linkedStrategyVO.threatLevel != null and linkedStrategyVO.threatLevel != ''">
+                threat_level,
+            </if>
+            <if test="linkedStrategyVO.alarmResults != null and linkedStrategyVO.alarmResults != ''">
+                alarm_results,
+            </if>
+            <if test="linkedStrategyVO.alarmNames != null">
+                alarm_names,
+            </if>
+            <if test="linkedStrategyVO.autoHandle != null">
+                auto_handle,
+            </if>
+            <if test="linkedStrategyVO.source != null and linkedStrategyVO.source != ''">
+                "source",
+            </if>
+            create_time,
+            update_time,
+            <if test="linkedStrategyVO.linkDeviceConfig != null and linkedStrategyVO.linkDeviceConfig != ''">
+                link_device_config,
+            </if>
+        </trim>
+        VALUES
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="linkedStrategyVO.id != null and  linkedStrategyVO.id >0 ">
+                #{linkedStrategyVO.id},
+            </if>
+            <if test="linkedStrategyVO.strategyName != null and linkedStrategyVO.strategyName != ''">
+                #{linkedStrategyVO.strategyName},
+            </if>
+            <if test="linkedStrategyVO.threatType != null and linkedStrategyVO.threatType != ''">
+                #{linkedStrategyVO.threatType},
+            </if>
+            <if test="linkedStrategyVO.threatTypeConfig != null and linkedStrategyVO.threatTypeConfig != ''">
+                #{linkedStrategyVO.threatTypeConfig},
+            </if>
+            <if test="linkedStrategyVO.status != null">
+                #{linkedStrategyVO.status},
+            </if>
+            <if test="linkedStrategyVO.threatLevel != null and linkedStrategyVO.threatLevel != ''">
+                #{linkedStrategyVO.threatLevel},
+            </if>
+            <if test="linkedStrategyVO.alarmResults != null and linkedStrategyVO.alarmResults != ''">
+                #{linkedStrategyVO.alarmResults},
+            </if>
+            <if test="linkedStrategyVO.alarmNames != null">
+                #{linkedStrategyVO.alarmNames},
+            </if>
+            <if test="linkedStrategyVO.autoHandle != null">
+                #{linkedStrategyVO.autoHandle},
+            </if>
+            <if test="linkedStrategyVO.source != null and linkedStrategyVO.source != ''">
+                #{linkedStrategyVO.source},
+            </if>
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP,
+            <if test="linkedStrategyVO.linkDeviceConfig != null and linkedStrategyVO.linkDeviceConfig != ''">
+                #{linkedStrategyVO.linkDeviceConfig},
+            </if>
+        </trim>
+        ON CONFLICT (id) DO UPDATE SET
+        <trim prefix="" suffix="" suffixOverrides=",">
+            update_time = CURRENT_TIMESTAMP,
+            <if test="linkedStrategyVO.threatType != null and linkedStrategyVO.threatType != ''">
+                threat_type = #{linkedStrategyVO.threatType},
+            </if>
+            <if test="linkedStrategyVO.threatTypeConfig != null">
+                threat_type_config = #{linkedStrategyVO.threatTypeConfig},
+            </if>
+            <if test="linkedStrategyVO.status != null">
+                "status" = #{linkedStrategyVO.status},
+            </if>
+            <if test="linkedStrategyVO.threatLevel != null and linkedStrategyVO.threatLevel != ''">
+                threat_level = #{linkedStrategyVO.threatLevel},
+            </if>
+            <if test="linkedStrategyVO.alarmResults != null and linkedStrategyVO.alarmResults != ''">
+                alarm_results = #{linkedStrategyVO.alarmResults},
+            </if>
+            <if test="linkedStrategyVO.alarmNames != null">
+                alarm_names = #{linkedStrategyVO.alarmNames},
+            </if>
+            <if test="linkedStrategyVO.autoHandle != null">
+                auto_handle = #{linkedStrategyVO.autoHandle},
+            </if>
+            <if test="linkedStrategyVO.source != null and linkedStrategyVO.source != ''">
+                "source" = #{linkedStrategyVO.source},
+            </if>
+            <if test="linkedStrategyVO.linkDeviceConfig != null and linkedStrategyVO.linkDeviceConfig != ''">
+                link_device_config = #{linkedStrategyVO.linkDeviceConfig},
+            </if>
+        </trim>
+    </insert>
+    <update id="enableLinkStrategy">
+        UPDATE t_linked_strategy SET "status" = #{status} WHERE id = #{strategyId}
+    </update>
+    <update id="update" parameterType="com.dbapp.extension.xdr.linkageHandle.entity.LinkedStrategy">
+        UPDATE t_linked_strategy
+        <set>
+            <if test="linkedStrategyVO.strategyName != null and linkedStrategyVO.strategyName != ''">
+                strategy_name = #{linkedStrategyVO.strategyName},
+            </if>
+            <if test="linkedStrategyVO.threatType != null and linkedStrategyVO.threatType != ''">
+                threat_type = #{linkedStrategyVO.threatType},
+            </if>
+            <if test="linkedStrategyVO.threatTypeConfig != null and linkedStrategyVO.threatTypeConfig != ''">
+                threat_type_config = #{linkedStrategyVO.threatTypeConfig},
+            </if>
+            <if test="linkedStrategyVO.status != null">
+                "status" = #{linkedStrategyVO.status},
+            </if>
+            <if test="linkedStrategyVO.threatLevel != null and linkedStrategyVO.threatLevel != ''">
+                threat_level = #{linkedStrategyVO.threatLevel},
+            </if>
+            <if test="linkedStrategyVO.alarmResults != null and linkedStrategyVO.alarmResults != ''">
+                alarm_results = #{linkedStrategyVO.alarmResults},
+            </if>
+            <if test="linkedStrategyVO.alarmNames != null and linkedStrategyVO.alarmNames != ''">
+                alarm_names = #{linkedStrategyVO.alarmNames},
+            </if>
+            <if test="linkedStrategyVO.autoHandle != null">
+                auto_handle = #{linkedStrategyVO.autoHandle},
+            </if>
+            <if test="linkedStrategyVO.source != null and linkedStrategyVO.source != ''">
+                "source" = #{linkedStrategyVO.source},
+            </if>
+            update_time = CURRENT_TIMESTAMP,
+            <if test="linkedStrategyVO.linkDeviceConfig != null and linkedStrategyVO.linkDeviceConfig != ''">
+                link_device_config = #{linkedStrategyVO.linkDeviceConfig},
+            </if>
+        </set>
+        WHERE id = #{linkedStrategyVO.id}
+    </update>
+    <delete id="deleteLinkStrategy" parameterType="java.lang.Long">
+        DELETE FROM t_linked_strategy WHERE id = #{strategyId} AND "source" != 'template'
+    </delete>
+
+    <select id="getLinkStrategyById" parameterType="java.lang.Long"
+            resultType="com.dbapp.extension.xdr.linkageHandle.entity.LinkedStrategy">
+        SELECT * FROM t_linked_strategy WHERE id = #{strategyId}
+    </select>
+
+    <select id="getLinkStrategyByIds" resultType="com.dbapp.extension.xdr.linkageHandle.entity.LinkedStrategy">
+        SELECT * FROM t_linked_strategy
+        <where>
+            <if test="strategyIds != null and strategyIds.size() != 0">
+                id IN
+                <foreach collection="strategyIds" item="strategyId" index="index" separator="," open="(" close=")">
+                    #{strategyId}
+                </foreach>
+            </if>
+            <if test="strategyIds == null or strategyIds.size() == 0">
+                AND FALSE
+            </if>
+        </where>
+    </select>
+
+    <select id="getLinkStrategyListTotal" resultType="java.lang.Long">
+        SELECT count(1)
+        FROM
+        (SELECT a.id ,a.strategy_name ,a.create_time,a."status" ,a."source" ,a.auto_handle,a.update_time ,STRING_AGG(b.link_device_type,'') as link_device_type,STRING_AGG(b.link_device_ip,'') as ip,STRING_AGG(b."action",'') as "action",b.id rel_id FROM t_linked_strategy a LEFT JOIN t_strategy_device_rel b ON a.id = b.strategy_id
+        GROUP BY  a.strategy_name) ab
+        <where>
+            <if test="source != null and source != ''">
+                AND ab."source" IN
+                <foreach collection="source.split(',')" item="item" index="index" separator="," open="("  close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="linkDeviceType != null and linkDeviceType != ''">
+                AND ab.link_device_type ~ #{linkDeviceType}
+            </if>
+            <if test="linkDeviceIp != null and linkDeviceIp != ''">
+                AND ab.ip ILIKE '%' || #{linkDeviceIp} || '%'
+            </if>
+            <if test="startTime != null and startTime != ''">
+                AND ab.create_time &gt;= CAST(#{startTime} AS timestamp)
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND ab.create_time &lt;= CAST(#{endTime} AS timestamp)
+            </if>
+            <if test="action != null and action != ''">
+                <foreach collection="action.split(',')" item="item" index="index" separator="OR" open="AND ("  close=")">
+                    #{item} = ANY(STRING_TO_ARRAY(ab."action", ','))
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getLinkStrategyList"
+            resultType="com.dbapp.extension.xdr.linkageHandle.entity.LinkedStrategyVO">
+        SELECT
+        ab.id strategyId,
+        ab.strategy_name strategyName,
+        ab."status",
+        ab."source",
+        ab.auto_handle autoHandle,
+        ab.link_device_type linkDeviceType,
+        ab.ip linkDeviceIp,
+        ab."action",
+        ab.create_time
+        FROM
+            (SELECT
+            a.id,
+            a.strategy_name,
+            a."status",
+            a."source",
+            a.auto_handle,
+            STRING_AGG(b.link_device_type,'') as link_device_type,
+            STRING_AGG(b.link_device_ip,'') as ip,
+            STRING_AGG(b."action",'') as "action",
+            a.create_time
+            FROM t_linked_strategy a LEFT JOIN t_strategy_device_rel b ON a.id = b.strategy_id
+            GROUP BY  a.strategy_name) ab
+        <where>
+            <if test="source != null and source != ''">
+                AND ab."source" IN
+                <foreach collection="source.split(',')" item="item" index="index" separator="," open="("  close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="linkDeviceType != null and linkDeviceType != ''">
+                AND ab.link_device_type ~ #{linkDeviceType}
+            </if>
+            <if test="linkDeviceIp != null and linkDeviceIp != ''">
+                AND ab.ip ILIKE '%' || #{linkDeviceIp} || '%'
+            </if>
+            <if test="startTime != null and startTime != ''">
+                AND ab.create_time &gt;= CAST(#{startTime} AS timestamp)
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND ab.create_time &lt;= CAST(#{endTime} AS timestamp)
+            </if>
+            <if test="action != null and action != ''">
+                <foreach collection="action.split(',')" item="item" index="index" separator="OR" open="AND ("  close=")">
+                    #{item} = ANY(STRING_TO_ARRAY(ab."action", ','))
+                </foreach>
+            </if>
+        </where>
+        ORDER BY ab.create_time DESC, ab.id
+            <if test="limit != null and offset !=null and limit != 0 and offset >= 0">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+
+    <select id="getLinkStrategyCountByNameAndId" resultType="java.lang.Integer">
+        SELECT count(1) FROM t_linked_strategy WHERE strategy_name = #{strategyName}
+        <if test="strategyId != null">
+            AND id != ${strategyId}
+        </if>
+    </select>
+
+    <select id="findLinkStrategyByParam"
+            resultType="com.dbapp.extension.xdr.linkageHandle.entity.LinkedStrategy">
+        SELECT
+        a.id,
+        a.strategy_name strategyName,
+        a."status",
+        a."source",
+        a.auto_handle autoHandle
+         FROM t_linked_strategy a LEFT JOIN t_strategy_device_rel b ON a.id = b.strategy_id
+        <where>
+            <if test="param.source != null and param.source != ''">
+                AND a."source" IN
+                <foreach collection="param.source.split(',')" item="item" index="index" separator="," open="("  close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="param.linkDeviceType != null and param.linkDeviceType != ''">
+                AND b.link_device_type IN
+                <foreach collection="param.linkDeviceType.split(',')" item="item" index="index" separator="," open="("  close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="param.linkDeviceIp != null and param.linkDeviceIp != ''">
+                AND b.link_device_ip ILIKE '%' || #{param.linkDeviceIp} || '%'
+            </if>
+            <if test="param.strategyIds != null and param.strategyIds.size() > 0 ">
+                AND a.id IN
+                <foreach collection="param.strategyIds" item="item" index="index" separator="," open="("  close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="param.startTime != null and param.startTime != ''">
+                AND a.create_time &gt;= CAST(#{param.startTime} AS timestamp)
+            </if>
+            <if test="param.endTime != null and param.endTime != ''">
+                AND a.create_time &lt;= CAST(#{param.endTime} AS timestamp)
+            </if>
+            <if test="param.action != null and param.action != ''">
+                <foreach collection="param.action.split(',')" item="item" index="index" separator="OR" open="AND ("  close=")">
+                    #{item} = ANY(STRING_TO_ARRAY(b."action", ','))
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getAllTemplateStrategyIds" resultType="com.dbapp.extension.xdr.linkageHandle.entity.LinkedStrategy">
+        SELECT * FROM t_linked_strategy WHERE "source" = 'template'
+    </select>
+
+    <update id="batchUpdateLinkDeviceConfig">
+        UPDATE t_linked_strategy
+        SET link_device_config = CASE id
+        <foreach collection="linkedStrategyList" item="linkedStrategy" index="index" separator=" ">
+            WHEN #{linkedStrategy.id} THEN #{linkedStrategy.linkDeviceConfig}
+        </foreach>
+        END
+        WHERE id IN
+        <foreach collection="linkedStrategyList" item="linkedStrategy" index="index" separator="," open="(" close=")">
+            #{linkedStrategy.id}
+        </foreach>
+    </update>
+    <select id="getAllStrategys" resultType="com.dbapp.extension.xdr.linkageHandle.entity.LinkedStrategy">
+        SELECT * FROM t_linked_strategy
+    </select>
+    <update id="updateAppId">
+        UPDATE t_linked_strategy SET
+            link_device_config = REPLACE(link_device_config, #{oldAppId}, #{appId})
+        WHERE link_device_config ILIKE '%' || #{oldAppId} || '%'
+    </update>
+</mapper>

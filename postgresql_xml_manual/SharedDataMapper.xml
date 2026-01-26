@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.SharedDataMapper">
+    <select id="queryTodayUpdateIpInformation" resultType="java.util.Map">
+        SELECT event_code, update_ip_information
+        FROM t_security_incidents
+        WHERE start_time::DATE = CURRENT_DATE
+    </select>
+</mapper>

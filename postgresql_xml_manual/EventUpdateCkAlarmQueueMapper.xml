@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.EventUpdateCkAlarmQueueMapper">
+    <resultMap id="baseResultMap" type="com.dbapp.extension.xdr.threatMonitor.entity.TEventUpdateCkAlarmQueue">
+        <result column="window_id" property="windowId" jdbcType="VARCHAR"/>
+        <result column="agg_condition" property="aggCondition" jdbcType="VARCHAR"/>
+        <result column="time_part" property="timePart" jdbcType="VARCHAR"/>
+        <result column="event_id" property="eventId" jdbcType="VARCHAR"/>
+        <result column="end_time" property="endTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insertIgnore">
+        INSERT INTO t_event_update_ck_alarm_queue
+            (window_id, agg_condition, time_part, event_id, end_time) VALUES
+        <foreach collection="datas" item="data" separator=",">
+            (#{data.windowId},#{data.aggCondition},#{data.timePart},#{data.eventId},CAST(#{data.endTime} AS timestamp))
+        </foreach>
+        ON CONFLICT (window_id, agg_condition) DO NOTHING
+    </insert>
+
+    <select id="selectLast" resultType="map">
+        SELECT window_id windowId, agg_condition aggCondition, time_part timePart, event_id eventId, end_time endTime
+        FROM t_event_update_ck_alarm_queue
+        WHERE is_ck_sync=false ORDER BY create_time DESC LIMIT 1000
+    </select>
+
+    <update id="updateSyncSuccessBatch">
+        UPDATE t_event_update_ck_alarm_queue SET is_ck_sync =true WHERE (window_id , agg_condition ) IN
+        <foreach collection="datas" item="data" open="(" close=")" separator=",">
+            (#{data.windowId},#{data.aggCondition})
+        </foreach>
+    </update>
+</mapper>

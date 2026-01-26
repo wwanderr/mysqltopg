@@ -1,0 +1,42 @@
+/*
+ * Table: t_scene_web_access_temp
+ * Generated: 2026-01-22 11:07:02
+ * Source: xdr22.sql
+ */
+
+-- ----------------------------
+-- Table structure for t_scene_web_access_temp
+-- ----------------------------
+DROP TABLE IF EXISTS "t_scene_web_access_temp";
+CREATE TABLE "t_scene_web_access_temp" (
+  "id" int8 NOT NULL,
+  "src_address" varchar(255) COLLATE "pg_catalog"."default",
+  "dest_address" varchar(255) COLLATE "pg_catalog"."default",
+  "victim" text COLLATE "pg_catalog"."default",
+  "attacker" text COLLATE "pg_catalog"."default",
+  "request_url" text COLLATE "pg_catalog"."default",
+  "dest_host_name" text COLLATE "pg_catalog"."default",
+  "start_time" timestamptz(6),
+  "end_time" timestamptz(6),
+  "oldest_time" timestamptz(6),
+  "latest_time" timestamptz(6),
+  "event_count" int8,
+  "create_time" timestamptz(6) DEFAULT CURRENT_TIMESTAMP
+)
+;
+ALTER TABLE "t_scene_web_access_temp" OWNER TO "dbapp";
+COMMENT ON COLUMN "t_scene_web_access_temp"."src_address" IS '源IP';
+COMMENT ON COLUMN "t_scene_web_access_temp"."dest_address" IS '目的IP';
+COMMENT ON COLUMN "t_scene_web_access_temp"."victim" IS '受害者';
+COMMENT ON COLUMN "t_scene_web_access_temp"."attacker" IS '攻击者';
+COMMENT ON COLUMN "t_scene_web_access_temp"."request_url" IS 'url';
+COMMENT ON COLUMN "t_scene_web_access_temp"."dest_host_name" IS '目的主机名';
+COMMENT ON COLUMN "t_scene_web_access_temp"."oldest_time" IS '首次发生时间';
+COMMENT ON COLUMN "t_scene_web_access_temp"."latest_time" IS '最近发生时间';
+COMMENT ON TABLE "t_scene_web_access_temp" IS '威胁分析-可疑后门访问临时数据表';
+
+-- ----------------------------
+-- Records of t_scene_web_access_temp
+-- ----------------------------
+BEGIN;
+COMMIT;

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.outgoingData.mapper.EventOutGoingConfigMapper">
+
+    <update id="delById" parameterType="com.dbapp.extension.xdr.outgoingData.po.EventOutGoingConfig">
+        UPDATE t_event_out_going_config SET IS_DEL = 1 WHERE id = #{eventOutGoingConfig.id}
+    </update>
+</mapper>

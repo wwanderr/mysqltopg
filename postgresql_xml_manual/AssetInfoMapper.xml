@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.AssetInfoMapper">
+
+    <select id="queryAssetsCount" resultType="long">
+        SELECT count(1) FROM t_asset_info
+    </select>
+
+    <select id="queryAssets" resultType="java.util.Map">
+         SELECT assetIp,assetName FROM t_asset_info
+         LIMIT #{size,jdbcType=INTEGER} OFFSET #{offset,jdbcType=INTEGER}
+    </select>
+</mapper>

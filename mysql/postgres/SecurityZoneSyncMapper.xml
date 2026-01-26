@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatIntelligence.mapper.SecurityZoneSyncMapper">
+
+    <select id="querySecurityZone" resultType="java.util.Map">
+     SELECT
+     ti.assetIp,f."name",f.id
+     FROM
+    "bigdata-web".t_asset_info ti
+    RIGHT JOIN "bigdata-web".t_ailpha_network_segment e
+    ON e.relation_type='SECURITY_ZONE' AND ti.assetIpNum BETWEEN e.first_ip AND e.last_ip
+    LEFT JOIN "bigdata-web".t_ailpha_security_zone f ON e.relation_id = f.id
+    WHERE f.id is not null
+    </select>
+</mapper>

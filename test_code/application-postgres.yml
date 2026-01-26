@@ -1,0 +1,88 @@
+# Spring Boot + PostgreSQL配置示例
+# 用于确保时间字段正确处理
+
+spring:
+  datasource:
+    # PostgreSQL数据源配置
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/your_database?serverTimezone=Asia/Shanghai
+    username: dbapp
+    password: your_password
+    
+    # HikariCP连接池配置
+    hikari:
+      pool-name: PostgreSQL-HikariCP
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+
+  # JPA配置（如果使用）
+  jpa:
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQL10Dialect
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+        # 时区配置（重要！）
+        jdbc:
+          time_zone: Asia/Shanghai
+        # 使用新的时间API
+        jdbc:
+          use_new_id_generator_mappings: true
+
+# MyBatis配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.dbapp.extension.xdr.**.po
+  configuration:
+    # 开启驼峰命名转换
+    map-underscore-to-camel-case: true
+    # 开启二级缓存
+    cache-enabled: true
+    # 懒加载
+    lazy-loading-enabled: true
+    # 日志
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# 日志配置
+logging:
+  level:
+    com.dbapp.extension.xdr: DEBUG
+    org.springframework.jdbc: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+---
+# 开发环境配置
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bigdata_web_dev?serverTimezone=Asia/Shanghai
+
+---
+# 测试环境配置  
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:postgresql://192.168.31.173:5432/bigdata_web_test?serverTimezone=Asia/Shanghai
+
+---
+# 生产环境配置
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: jdbc:postgresql://prod-server:5432/bigdata_web?serverTimezone=Asia/Shanghai
+  jpa:
+    show-sql: false

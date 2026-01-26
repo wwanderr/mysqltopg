@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    自动转换说明：
+    - 原文件: LoginBaselineMapper.xml
+    - 转换时间: 2026-01-19 11:04:29
+    - MySQL → PostgreSQL 16.x
+    
+    注意事项：
+    1. ON CONFLICT子句可能需要手动指定冲突列
+    2. LIKE已保留，如需不区分大小写请改为ILIKE
+    3. 建议人工review后再部署到生产环境
+-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatAnalysis.mapper.LoginBaselineMapper">
+
+    <delete id="cleanOvertimeData">
+        delete from t_scene_login_baseline where EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - last_login_time)) / 3600 > #{overtimeHour}
+    </delete>
+
+    <delete id="insertOrUpdate">
+        insert into t_scene_login_baseline(dest_address, src_user_name, last_login_time, city_counts, city_array, create_time, update_time)
+        values
+        <foreach collection="baselineList" separator="," item="item" >
+            (#{item.destAddress},#{item.srcUserName},CAST(#{item.lastLoginTime} AS timestamp),#{item.cityCounts},#{item.cityArray},CAST(#{item.createTime} AS timestamp),CURRENT_TIMESTAMP)
+        </foreach>
+        on duplicate key update
+        last_login_time=VALUES(last_login_time),
+        city_counts=VALUES(city_counts),
+        city_array=VALUES(city_array),
+        update_time=VALUES(update_time),
+        create_time=create_time
+    </delete>
+
+    <select id="queryByPrimaryKey" resultType="com.dbapp.extension.xdr.threatAnalysis.entity.LoginBaseline">
+        select * from t_scene_login_baseline where(dest_address,src_user_name) in
+        <foreach collection="baselineList" separator="," open="(" close=")" item="item">
+            (#{item.destAddress},#{item.srcUserName})
+        </foreach>
+    </select>
+</mapper>

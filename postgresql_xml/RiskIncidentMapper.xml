@@ -1,0 +1,1012 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    自动转换说明：
+    - 原文件: RiskIncidentMapper.xml
+    - 转换时间: 2026-01-19 11:04:29
+    - MySQL → PostgreSQL 16.x
+    
+    注意事项：
+    1. ON CONFLICT子句可能需要手动指定冲突列
+    2. LIKE已保留，如需不区分大小写请改为ILIKE
+    3. 建议人工review后再部署到生产环境
+-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.RiskIncidentMapper">
+
+    <sql id="timeByParam">
+        and t.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+    </sql>
+
+    <sql id="queryParamCondition">
+        <if test="threatSeverity != null and threatSeverity.size() != 0">
+            and t.threat_severity IN
+            <foreach collection="threatSeverity" separator=" ," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="alarmResults != null and alarmResults.size() != 0">
+            and t.alarm_results IN
+            <foreach collection="alarmResults" separator="," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+        <if test="topEventType != null and topEventType != ''">
+            and t.category = #{topEventType}
+        </if>
+        <if test="excludeEventIds != null and excludeEventIds.size() != 0">
+            and t.id not IN
+            <foreach collection="excludeEventIds" separator="," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="aggClueSecurityEventByName" resultType="com.dbapp.extension.xdr.threatMonitor.entity.RiskIncident">
+        select name, startTime, endTime, topEventTypeChinese, secondEventTypeChinese, focusIp, killChain,tagSearch, isScenario,focusObject, counts, eventIds,
+        case when threatSeverity=1 then 'Low'
+        when threatSeverity=2  then 'Medium'
+        when threatSeverity=3  then 'High'
+        else 'Low'
+        end as threatSeverity,
+        case when alarmResults=1 then 'FAIL'
+        when alarmResults=2  then 'UNKNOWN'
+        when alarmResults=3  then 'OK'
+        else 'FAIL'
+        end as alarmResults,
+        case when alarmStatus=5 then 'unprocessed'
+        when alarmStatus=4  then 'processing'
+        when alarmStatus=3  then 'processed'
+        when alarmStatus=2  then 'falsePositives'
+        when alarmStatus=1  then 'ignore'
+        else 'processed'
+        end as alarmStatus
+        from
+        (select
+        event_name as name,
+        min(t.start_time) as startTime ,
+        max(t.end_time) as endTime,
+        tet.incident_class_type as topEventTypeChinese,
+        tet.incident_sub_class_type as secondEventTypeChinese,
+        STRING_AGG(t.focus_ip, ',') as focusIp,
+        STRING_AGG(t.kill_chain, ' ') as killChain,
+        STRING_AGG(CASE WHEN t.tag_search IS NOT NULL AND t.tag_search != '' THEN t.tag_search ELSE NULL END, ',') as tagSearch,
+        max(t.is_scenario) as isScenario,
+        t.focus as focusObject,
+        sum(t.counts) as counts,
+        STRING_AGG(t.id, ',') as eventIds,
+        max(case when threat_severity='Low' then 1
+        when threat_severity='Medium'  then 2
+        when threat_severity='High'  then 3
+        else 1
+        end) as threatSeverity,
+        max(case when alarm_results='FAIL' then 1
+        when alarm_results='UNKNOWN'  then 2
+        when alarm_results='OK'  then 3
+        else 1
+        end) as alarmResults,
+        max(case when alarm_status='unprocessed' then 5
+        when alarm_status='processing'  then 4
+        when alarm_status='processed'  then 3
+        when alarm_status='falsePositives'  then 2
+        when alarm_status='ignore'  then 1
+        else 3
+        end) as alarmStatus
+        from t_security_incidents t,t_event_template tet
+        where tet.incident_type = 1
+        and t.template_id = tet.id
+        <include refid="timeByParam"/>
+        <include refid="queryParamCondition"/>
+        group by event_name order by threatSeverity desc ,alarmResults desc, alarmStatus desc
+        ) as a
+    </select>
+    <select id="mappingNormalSecurityEvent" resultType="com.dbapp.extension.xdr.threatMonitor.entity.RiskIncident">
+        select
+        t.event_name as name ,
+        t.start_time as startTime ,
+        t.end_time as endTime,
+        t.category as topEventTypeChinese,
+        t.sub_category as secondEventTypeChinese,
+        t.focus_ip as focusIp,
+        t.focus as focusObject,
+        t.counts as counts,
+        t.id as eventIds,
+        t.threat_severity as threatSeverity,
+        t.alarm_results as alarmResults,
+        t.alarm_status as alarmStatus,
+        t.kill_chain as killChain,
+        t.tag_search as tagSearch,
+        t.is_scenario as isScenario,
+        t.event_code as eventCode
+        from t_security_incidents t,t_event_template tet
+        where tet.incident_type = 0
+        and t.template_id = tet.id
+        <include refid="timeByParam"/>
+        <include refid="queryParamCondition"/>
+    </select>
+
+    <insert id="backUpLastTermData">
+        INSERT INTO t_risk_incidents_history
+        (event_id, event_code, name, template_id, threat_severity, start_time, end_time, top_event_type_chinese,
+         second_event_type_chinese, focus_ip, focus_object, counts, alarm_status, alarm_results, filter_content,
+         event_ids, data_source, create_time, update_time)
+        select  id, event_code, name, template_id, threat_severity, start_time, end_time, top_event_type_chinese,
+                second_event_type_chinese, focus_ip, focus_object, counts, alarm_status, alarm_results, filter_content,
+                event_ids, data_source, #{timestamp}, update_time
+        from t_risk_incidents
+        where DATE(create_time) = CAST(#{currentDate} AS timestamp)
+    </insert>
+
+    <update id="batchInsertOrUpdateIncident" parameterType="java.util.List">
+        <foreach collection="riskIncidentList" item="item" index="index" separator=";" >
+            insert into t_risk_incidents
+            <trim prefix="(" suffix=")" suffixOverrides=",">
+                <if test="item.eventCode != null and item.eventCode != ''">
+                    event_code,
+                </if>
+                <if test="item.name != null and item.name != ''">
+                    name,
+                </if>
+                <if test="item.templateId != null and item.templateId != ''">
+                    template_id,
+                </if>
+                <if test="item.threatSeverity != null and item.threatSeverity != ''">
+                    threat_severity,
+                </if>
+                <if test="item.startTime != null and item.startTime != ''">
+                    start_time,
+                </if>
+                <if test="item.endTime != null and item.endTime != ''">
+                    end_time,
+                </if>
+                <if test="item.topEventTypeChinese != null and item.topEventTypeChinese != ''">
+                    top_event_type_chinese,
+                </if>
+                <if test="item.secondEventTypeChinese != null and item.secondEventTypeChinese != ''">
+                    second_event_type_chinese,
+                </if>
+                <if test="item.focusIp != null and item.focusIp != ''">
+                    focus_ip,
+                </if>
+                <if test="item.focusObject != null and item.focusObject != ''">
+                    focus_object,
+                </if>
+                <if test="item.counts != null ">
+                    counts,
+                </if>
+                <if test="item.alarmStatus != null and item.alarmStatus != ''">
+                    alarm_status,
+                </if>
+                <if test="item.alarmResults != null and item.alarmResults != ''">
+                    alarm_results,
+                </if>
+                <if test="item.filterContent != null and item.filterContent != ''">
+                    filter_content,
+                </if>
+                <if test="item.filterContentAiql != null and item.filterContentAiql != ''">
+                    filter_content_aiql,
+                </if>
+                <if test="item.eventIds != null and item.eventIds != ''">
+                    event_ids,
+                </if>
+                <if test="item.dataSource != null and item.dataSource != ''">
+                    data_source,
+                </if>
+                <if test="item.killChain != null and item.killChain != ''">
+                    kill_chain,
+                </if>
+                <if test="item.isScenario != null">
+                    is_scenario,
+                </if>
+                <if test="item.tagSearch != null and item.tagSearch != ''">
+                    tag_search,
+                </if>
+                create_time,
+                update_time,
+            </trim>
+            values
+            <trim prefix="(" suffix=")" suffixOverrides=",">
+                <if test="item.eventCode != null and item.eventCode != ''">
+                    #{item.eventCode},
+                </if>
+                <if test="item.name != null and item.name != ''">
+                    #{item.name},
+                </if>
+                <if test="item.templateId != null">
+                    #{item.templateId},
+                </if>
+                <if test="item.threatSeverity != null and item.threatSeverity != ''">
+                    #{item.threatSeverity},
+                </if>
+                <if test="item.startTime != null and item.startTime != ''">
+                    CAST(#{item.startTime} AS timestamp),
+                </if>
+                <if test="item.endTime != null and item.endTime != ''">
+                    CAST(#{item.endTime} AS timestamp),
+                </if>
+                <if test="item.topEventTypeChinese != null and item.topEventTypeChinese != ''">
+                    #{item.topEventTypeChinese},
+                </if>
+                <if test="item.secondEventTypeChinese != null and item.secondEventTypeChinese != ''">
+                    #{item.secondEventTypeChinese},
+                </if>
+                <if test="item.focusIp != null and item.focusIp != ''">
+                    #{item.focusIp},
+                </if>
+                <if test="item.focusObject != null and item.focusObject != ''">
+                    #{item.focusObject},
+                </if>
+                <if test="item.counts != null ">
+                    #{item.counts},
+                </if>
+                <if test="item.alarmStatus != null and item.alarmStatus != ''">
+                    #{item.alarmStatus},
+                </if>
+                <if test="item.alarmResults != null and item.alarmResults != ''">
+                    #{item.alarmResults},
+                </if>
+                <if test="item.filterContent != null and item.filterContent != ''">
+                    #{item.filterContent},
+                </if>
+                <if test="item.filterContentAiql != null and item.filterContentAiql != ''">
+                    #{item.filterContentAiql},
+                </if>
+                <if test="item.eventIds != null and item.eventIds != ''">
+                    #{item.eventIds},
+                </if>
+                <if test="item.dataSource != null and item.dataSource != ''">
+                    #{item.dataSource},
+                </if>
+                <if test="item.killChain != null and item.killChain != ''">
+                    #{item.killChain},
+                </if>
+                <if test="item.isScenario != null">
+                    #{item.isScenario},
+                </if>
+                <if test="item.tagSearch != null and item.tagSearch != ''">
+                    #{item.tagSearch},
+                </if>
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP
+            </trim>
+            ON CONFLICT DO UPDATE SET <trim prefix="" suffix="" suffixOverrides=",">
+                update_time = CURRENT_TIMESTAMP,
+                <if test="item.name != null and item.name != ''">
+                    name = #{item.name},
+                </if>
+                <if test="item.templateId != null">
+                    template_id = #{item.templateId},
+                </if>
+                <if test="item.threatSeverity != null and item.threatSeverity != ''">
+                    threat_severity = #{item.threatSeverity},
+                </if>
+                <if test="item.startTime != null and item.startTime != ''">
+                    start_time = CAST(#{item.startTime} AS timestamp),
+                </if>
+                <if test="item.endTime != null and item.endTime != ''">
+                    end_time = CAST(#{item.endTime} AS timestamp),
+                </if>
+                <if test="item.topEventTypeChinese != null and item.topEventTypeChinese != ''">
+                    top_event_type_chinese = #{item.topEventTypeChinese},
+                </if>
+                <if test="item.secondEventTypeChinese != null and item.secondEventTypeChinese != ''">
+                    second_event_type_chinese = #{item.secondEventTypeChinese},
+                </if>
+                <if test="item.focusIp != null and item.focusIp != ''">
+                    focus_ip = #{item.focusIp},
+                </if>
+                <if test="item.focusObject != null and item.focusObject != ''">
+                    focus_object = #{item.focusObject},
+                </if>
+                <if test="item.counts != null">
+                    counts = #{item.counts},
+                </if>
+                <if test="item.alarmStatus != null and item.alarmStatus != ''">
+                    alarm_status = #{item.alarmStatus},
+                </if>
+                <if test="item.alarmResults != null and item.alarmResults != ''">
+                    alarm_results = case when is_scenario != 1 then #{item.alarmResults} else alarm_results end,
+                </if>
+                <if test="item.filterContent != null and item.filterContent != ''">
+                    filter_content = #{item.filterContent},
+                </if>
+                <if test="item.eventIds != null and item.eventIds != ''">
+                    event_ids = #{item.eventIds},
+                </if>
+                <if test="item.killChain != null and item.killChain != ''">
+                    kill_chain = #{item.killChain},
+                </if>
+                <if test="item.isScenario != null">
+                    is_scenario = #{item.isScenario},
+                </if>
+                <if test="item.tagSearch != null and item.tagSearch != ''">
+                    tag_search = #{item.tagSearch},
+                </if>
+            </trim>
+        </foreach>
+    </update>
+
+    <delete id="deleteOldIncidentAnalysis">
+        delete from t_risk_incidents_analysis
+        where DATE(create_time) = CAST(#{currentDate} AS timestamp) AND status = 'todo'
+        <if test="excludeEventCodes != null and excludeEventCodes.size() != 0">
+            and risk_incidents_event_code not IN
+            <foreach collection="excludeEventCodes" separator=" ," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+    </delete>
+
+    <delete id="deleteOldIncident">
+        delete from t_risk_incidents
+        where DATE(create_time) = CAST(#{currentDate} AS timestamp)
+        <if test="excludeEventCodes != null and excludeEventCodes.size() != 0">
+            and event_code not IN
+            <foreach collection="excludeEventCodes" separator=" ," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+    </delete>
+
+    <select id="selectOldIncidentByCodes" resultType="java.lang.Long">
+        select id from t_risk_incidents
+        where DATE(create_time) = CAST(#{currentDate} AS timestamp)
+        <if test="excludeEventCodes != null and excludeEventCodes.size() != 0">
+            and event_code not IN
+            <foreach collection="excludeEventCodes" separator=" ," open="(" close=")" item="item">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+
+
+    <select id="getRiskList" resultType="java.util.Map">
+        select
+        ri.id,
+        ri.name,
+        ri.counts,
+        ri.event_code AS eventCode,
+        ri.event_ids AS eventIds,
+        ri.template_id AS templateId,
+        ri.counts AS eventCount,
+        ri.tag_search as tagSearch,
+        ri.is_scenario as isScenario,
+        CASE
+        ri.alarm_results
+        WHEN "OK" THEN
+        "成功"
+        WHEN "FAIL" THEN
+        "失败"
+        WHEN "UNKNOWN" THEN
+        "尝试"
+        END alarmResults,
+        CASE
+        ri.threat_severity
+        WHEN "Low" THEN
+        "低"
+        WHEN "Medium" THEN
+        "中"
+        WHEN "High" THEN
+        "高" ELSE "未知"
+        END threatSeverity,
+        ri.top_event_type_chinese AS topEventTypeChinese,
+        TO_CHAR(ri.start_time, 'YYYY-MM-DD HH24:MI:SS') AS startTime,
+        TO_CHAR(ri.end_time, 'YYYY-MM-DD HH24:MI:SS') AS endTime,
+        ri.second_event_type_chinese AS subCategory,
+        ri.focus_ip AS focusIp,
+        ri.focus_object AS focusObjectEN,
+        CASE
+        ri.focus_object
+        WHEN "attacker" THEN
+        "攻击者" ELSE "受害者"
+        END focusObjectCN,
+        ri.filter_content AS filterContent,
+        ri.data_source AS dataSource,
+        ri.update_time AS updateTime,
+        ri.create_time AS createTime,
+        ri.judge_status AS judgeStatus,
+        judge_result as judgeResult,
+        CASE
+        ri.alarm_status
+        WHEN "unprocessed" THEN
+        "未处置"
+        WHEN "processing" THEN
+        "处置中"
+        WHEN "falsePositives" THEN
+        "已处置-标记误报"
+        WHEN "processed" THEN
+        "已处置-完成"
+        WHEN "ignore" THEN
+        "已处置-忽略"
+        END alarmStatus,
+        CASE
+        WHEN ia.status != "todo" THEN
+        true ELSE false
+        END analysisStatus,
+        CASE WHEN tt.associated_field IS NULL THEN FALSE ELSE TRUE END AS isAutoHandle
+        from t_risk_incidents ri
+        left join t_alarm_status_timing_task tt on ri.id = tt.associated_field and task_type = 'RiskIncident'
+        left join t_risk_incidents_analysis ia on ri.event_code = ia.risk_incidents_event_code and status != 'todo'
+        <where>
+            <if test="name != null and name != ''">
+                name like '%\\' || #{name} || '%'
+            </if>
+            <if test="threatSeverity != null and threatSeverity.size() != null">
+                and threat_severity in
+                <foreach collection="threatSeverity" separator=","  open="(" close=")" item="sub">
+                    #{sub}
+                </foreach>
+            </if>
+            <if test="subCategory != null and subCategory.size() != null">
+                and second_event_type_chinese in
+                <foreach collection="subCategory" separator=","  open="(" close=")" item="sub">
+                    #{sub}
+                </foreach>
+            </if>
+            <if test="focusObject != null and focusObject != ''">
+                and focus_object = #{focusObject,jdbcType=VARCHAR}
+            </if>
+            <if test="isScenario != null and isScenario == 1">
+                and is_scenario = 1
+            </if>
+            <if test="isScenario != null and isScenario == 0">
+                and (is_scenario != 1 or is_scenario is null)
+            </if>
+            <if test="focusIp != null and focusIp != ''">
+                and focus_ip like '%\\' || #{focusIp || jdbcType=VARCHAR} || '%'
+            </if>
+            <if test="alarmResult != null and alarmResult.size() != null">
+                and alarm_results in
+                <foreach collection="alarmResult" separator=","  open="(" close=")" item="sub">
+                    #{sub}
+                </foreach>
+            </if>
+            <if test="judgeResults != null and judgeResults.size != null">
+                and judge_result in
+                <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
+                    #{sub}
+                </foreach>
+            </if>
+            <if test="alarmStatus != null and alarmStatus.size != null">
+                and ri.alarm_status in
+                <foreach collection="alarmStatus" separator=","  open="(" close=")" item="sub">
+                    #{sub}
+                </foreach>
+            </if>
+            and end_time between CAST(#{startTime} AS timestamp) and CAST(#{endTime} AS timestamp)
+        </where>
+        order by
+        <choose>
+            <when test="orderByStr == null or orderByStr == ''">
+                end_time desc
+            </when>
+            <otherwise>
+                ${orderByStr}
+            </otherwise>
+        </choose>
+        LIMIT #{size,jdbcType=BIGINT} OFFSET #{offSet,jdbcType=BIGINT}
+    </select>
+
+    <select id="getCountByStatus" resultType="java.util.Map">
+        select count(1) as eventCount,a.alarmStatus from (
+        SELECT
+        alarm_status AS alarmStatus
+        FROM
+        t_risk_incidents ti
+        LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+        WHERE
+        ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        <if test="eventName != null and eventName != ''">
+            AND ti.name LIKE '%\\' || #{eventName} || '%'
+        </if>
+        <if test="focusIp != null and focusIp != ''">
+            AND ti.focus_ip LIKE '%\\' || #{focusIp} || '%'
+        </if>
+        <if test="focusObject != null and focusObject != ''">
+            AND ti.focus_object =  #{focusObject}
+        </if>
+        <if test="secondEventTypeChinese != null and secondEventTypeChinese.size() != 0">
+            AND ti.second_event_type_chinese IN
+            <foreach collection="secondEventTypeChinese" separator=","  open="(" close=")" item="sub">
+                #{sub}
+            </foreach>
+        </if>
+        <if test="alarmStatus != null and alarmStatus.size() != 0">
+            AND ti.alarm_status IN
+            <foreach collection="alarmStatus" separator=","  open="(" close=")" item="status">
+                #{status}
+            </foreach>
+        </if>
+        <if test="alarmResult != null and alarmResult.size() != 0">
+            AND ti.alarm_results IN
+            <foreach collection="alarmResult" separator=","  open="(" close=")" item="result">
+                #{result}
+            </foreach>
+        </if>
+        <if test="judgeResults != null and judgeResults.size != null">
+            and judge_result in
+            <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
+                #{sub}
+            </foreach>
+        </if>
+        <if test="threatSeverity != null and threatSeverity.size() != 0">
+            AND ti.threat_severity IN
+            <foreach collection="threatSeverity" separator=","  open="(" close=")" item="severity">
+                #{severity}
+            </foreach>
+        </if>
+        <if test="isScenario != null and isScenario == 1">
+            and ti.is_scenario = 1
+        </if>
+        <if test="isScenario != null and isScenario == 0">
+            and (ti.is_scenario != 1 or ti.is_scenario is null)
+        </if>) a
+        GROUP BY a.alarmStatus
+    </select>
+
+    <select id="getByEventCode" resultType="java.util.Map">
+        select * from t_risk_incidents_out_going where event_code = #{eventCode}
+    </select>
+
+    <select id="selectEventAndTempById" parameterType="java.lang.Integer" resultType="java.util.Map">
+        SELECT
+        TO_CHAR(MIN(ti.start_time), 'YYYY-MM-DD HH24:MI:SS') as startTime,
+        TO_CHAR(MAX(ti.end_time), 'YYYY-MM-DD HH24:MI:SS') as endTime,
+        STRING_AGG(ti.event_ids, ',') as eventId,
+        tt.ck_query_field as ckQueryField,
+        tt.ck_query_agg_field as ckQueryAggField,
+        tt.ck_query_condition as ckQueryCondition,
+        tt.inner_query_field as innerQueryField,
+        tt.outer_query_field as outerQueryField,
+        tt.is_thread as isThread,
+        tt.agg_field as aggField,
+        STRING_AGG(ti.attacker, ',') as attacker,
+        STRING_AGG(ti.victim, ',') as victim,
+        ti.mirror_sub_category as subCategory,
+        STRING_AGG(ti.event_ids, ',') as eventIds,
+        te.incident_name as templateName,
+        STRING_AGG(ti.family_id, ',') as familyId,
+        STRING_AGG(ti.organization_id, ',') as organizationId,
+        tt.interval_time as intervalTime,
+        ti.event_code as eventCode,
+        ti.name as eventName,
+        ti.name as incidentName,
+        te.incident_type as incidentType,
+        te.incident_rule_type as incidentRuleType,
+        ti.incident_cond as incidentCond,
+        ti.focus,
+        STRING_AGG(ti.focus_ip, ',') as focusIp,
+        te.conclusion,
+        te.display_filed as displayFiled,
+        ti.sub_category as eventSubCategory,
+        MAX(ti.is_scenario) as isScenario
+        FROM
+        t_risk_incidents ti
+        LEFT JOIN t_query_template tt ON ti.template_id = tt.id
+        LEFT JOIN t_event_template te ON ti.template_id = te.id
+        WHERE ti.id  IN (
+        <foreach collection="ids" separator="," item="id" index="index" >
+            #{id,jdbcType=INTEGER}
+        </foreach> )
+    </select>
+
+    <select id="selectAllByIdList" resultType="java.util.Map">
+        select id,name,counts,
+               event_code as eventCode,
+               event_ids as eventIds,
+               template_id as templateId,
+               counts AS eventCount,
+               CASE
+                   alarm_results
+                   WHEN "OK" THEN
+                       "成功"
+                   WHEN "FAIL" THEN
+                       "失败"
+                   WHEN "UNKNOWN" THEN
+                       "尝试"
+                   END alarmResults,
+               CASE
+                   threat_severity
+                   WHEN "Low" THEN
+                       "低"
+                   WHEN "Medium" THEN
+                       "中"
+                   WHEN "High" THEN
+                       "高" ELSE "未知"
+                   END threatSeverity,
+               top_event_type_chinese as topEventTypeChinese,
+                TO_CHAR(start_time, 'YYYY-MM-DD HH24:MI:SS') as startTime,
+                TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI:SS') as endTime,
+               second_event_type_chinese as subCategory,
+               focus_ip  as focusIp,
+               focus_object as focusObjectEN,
+               CASE
+                   focus_object
+                   WHEN "attacker" THEN
+                       "攻击者"
+                   ELSE "受害者"
+                   END focusObjectCN,
+               filter_content as filterContent,
+               data_source as dataSource,
+               update_time as updateTime,
+               create_time as createTime,
+               tag_search as tagSearch,
+               judge_result as judgeResult,
+               CASE
+                   alarm_status
+                   WHEN "unprocessed" THEN
+                       "未处置"
+                   WHEN "processing" THEN
+                       "处置中"
+                   WHEN "falsePositives" THEN
+                       "已处置-标记误报"
+                   WHEN "processed" THEN
+                       "已处置-完成"
+                   WHEN "ignore" THEN
+                       "已处置-忽略"
+                   END alarmStatus
+        from t_risk_incidents
+        <where>
+            id in
+            <foreach collection="evenIdList" separator="," open="(" close=")" item="id">
+                #{id}
+            </foreach>
+        </where>
+        ORDER BY endTime DESC
+    </select>
+
+    <select id="queryEventCount" resultType="java.util.Map">
+        select count(1) as eventCount,a.threatSeverity from (
+        SELECT
+        threat_severity AS threatSeverity
+        FROM
+        t_risk_incidents ti
+        LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+        WHERE
+        ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        <if test="eventName != null and eventName != ''">
+            AND ti.name LIKE '%\\' || #{eventName} || '%'
+        </if>
+        <if test="focusIp != null and focusIp != ''">
+            AND ti.focus_ip LIKE '%\\' || #{focusIp} || '%'
+        </if>
+        <if test="focusObject != null and focusObject != ''">
+            AND ti.focus_object =  #{focusObject}
+        </if>
+        <if test="secondEventTypeChinese != null and secondEventTypeChinese.size() != 0">
+            AND ti.second_event_type_chinese IN
+            <foreach collection="secondEventTypeChinese" separator=","  open="(" close=")" item="sub">
+                #{sub}
+            </foreach>
+        </if>
+        <if test="alarmStatus != null and alarmStatus.size() != 0">
+            AND ti.alarm_status IN
+            <foreach collection="alarmStatus" separator=","  open="(" close=")" item="status">
+                #{status}
+            </foreach>
+        </if>
+        <if test="alarmResult != null and alarmResult.size() != 0">
+            AND ti.alarm_results IN
+            <foreach collection="alarmResult" separator=","  open="(" close=")" item="result">
+                #{result}
+            </foreach>
+        </if>
+        <if test="judgeResults != null and judgeResults.size != null">
+            and judge_result in
+            <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
+                #{sub}
+            </foreach>
+        </if>
+        <if test="threatSeverity != null and threatSeverity.size() != 0">
+            AND ti.threat_severity IN
+            <foreach collection="threatSeverity" separator=","  open="(" close=")" item="severity">
+                #{severity}
+            </foreach>
+        </if>
+        <if test="isScenario != null and isScenario == 1">
+            and ti.is_scenario = 1
+        </if>
+        <if test="isScenario != null and isScenario == 0">
+            and (ti.is_scenario != 1 or ti.is_scenario is null)
+        </if>) a
+        GROUP BY a.threatSeverity
+    </select>
+
+    <select id="queryIncidentsCount" resultType="com.dbapp.extension.xdr.entity.CommonFilter">
+        select count(1) as number,a.name as name from (
+        SELECT
+        second_event_type_chinese AS name
+        FROM
+        t_risk_incidents ti
+        LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+        WHERE
+        ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        <if test="eventName != null and eventName != ''">
+            AND ti.name LIKE '%\\' || #{eventName} || '%'
+        </if>
+        <if test="focusIp != null and focusIp != ''">
+            AND ti.focus_ip LIKE '%\\' || #{focusIp} || '%'
+        </if>
+        <if test="focusObject != null and focusObject != ''">
+            AND ti.focus_object =  #{focusObject}
+        </if>
+        <if test="secondEventTypeChinese != null and secondEventTypeChinese.size() != 0">
+            AND ti.second_event_type_chinese IN
+            <foreach collection="secondEventTypeChinese" separator=","  open="(" close=")" item="sub">
+                #{sub}
+            </foreach>
+        </if>
+        <if test="alarmStatus != null and alarmStatus.size() != 0">
+            AND ti.alarm_status IN
+            <foreach collection="alarmStatus" separator=","  open="(" close=")" item="status">
+                #{status}
+            </foreach>
+        </if>
+        <if test="alarmResult != null and alarmResult.size() != 0">
+            AND ti.alarm_results IN
+            <foreach collection="alarmResult" separator=","  open="(" close=")" item="result">
+                #{result}
+            </foreach>
+        </if>
+        <if test="judgeResults != null and judgeResults.size != null">
+            and judge_result in
+            <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
+                #{sub}
+            </foreach>
+        </if>
+        <if test="threatSeverity != null and threatSeverity.size() != 0">
+            AND ti.threat_severity IN
+            <foreach collection="threatSeverity" separator=","  open="(" close=")" item="severity">
+                #{severity}
+            </foreach>
+        </if>
+        <if test="isScenario != null and isScenario == 1">
+            and ti.is_scenario = 1
+        </if>
+        <if test="isScenario != null and isScenario == 0">
+            and (ti.is_scenario != 1 or ti.is_scenario is null)
+        </if>) a
+        GROUP BY a.name
+    </select>
+
+    <select id="queryKillChains" resultType="java.lang.String">
+        SELECT
+        kill_chain
+        FROM
+        t_risk_incidents ti
+        LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+        WHERE
+        ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        <if test="eventName != null and eventName != ''">
+            AND ti.name LIKE '%\\' || #{eventName} || '%'
+        </if>
+        <if test="focusIp != null and focusIp != ''">
+            AND ti.focus_ip LIKE '%\\' || #{focusIp} || '%'
+        </if>
+        <if test="focusObject != null and focusObject != ''">
+            AND ti.focus_object =  #{focusObject}
+        </if>
+        <if test="secondEventTypeChinese != null and secondEventTypeChinese.size() != 0">
+            AND ti.second_event_type_chinese IN
+            <foreach collection="secondEventTypeChinese" separator=","  open="(" close=")" item="sub">
+                #{sub}
+            </foreach>
+        </if>
+        <if test="alarmStatus != null and alarmStatus.size() != 0">
+            AND ti.alarm_status IN
+            <foreach collection="alarmStatus" separator=","  open="(" close=")" item="status">
+                #{status}
+            </foreach>
+        </if>
+        <if test="alarmResult != null and alarmResult.size() != 0">
+            AND ti.alarm_results IN
+            <foreach collection="alarmResult" separator=","  open="(" close=")" item="result">
+                #{result}
+            </foreach>
+        </if>
+        <if test="judgeResults != null and judgeResults.size != null">
+            and judge_result in
+            <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
+                #{sub}
+            </foreach>
+        </if>
+        <if test="threatSeverity != null and threatSeverity.size() != 0">
+            AND ti.threat_severity IN
+            <foreach collection="threatSeverity" separator=","  open="(" close=")" item="severity">
+                #{severity}
+            </foreach>
+        </if>
+        <if test="isScenario != null and isScenario == 1">
+            and ti.is_scenario = 1
+        </if>
+        <if test="isScenario != null and isScenario == 0">
+            and (ti.is_scenario != 1 or ti.is_scenario is null)
+        </if>
+    </select>
+
+    <select id="getEventIdsById" resultType="java.lang.String">
+        select event_ids from t_risk_incidents where id = #{id}
+    </select>
+
+    <select id="getFilterContent" resultType="java.lang.String">
+        select filter_content from t_risk_incidents where id = #{id}
+    </select>
+
+    <select id="FocusIpMessage" parameterType="java.util.List" resultType="java.util.Map">
+        select
+        focus_ip as focusIp,
+        src_geo_region as srcGeoRegion,
+        security_zone as securityZone,
+        TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI:SS') as endTime
+        from t_risk_incidents_out_going
+        <where>
+            event_code in (
+            select event_code
+            from t_risk_incidents
+            <where>
+                and id = #{id}
+            </where>)
+            <if test="ip != null and ip != ''">
+                and focus_ip like '%\\' || #{ip} || '%'
+            </if>
+        </where>
+        order by
+        end_time,
+        case
+        when cat_outcome = 'OK' then 1
+        when cat_outcome = 'Attempt' then 2
+        when cat_outcome = 'FAIL' then 3
+        else 4 end
+        LIMIT #{size,jdbcType=BIGINT} OFFSET #{offSet,jdbcType=BIGINT}
+    </select>
+
+    <select id="getFocusObject" resultType="java.lang.String">
+        select focus_object from t_risk_incidents where id = #{id}
+    </select>
+
+    <select id="getRiskListByIds" resultType="com.dbapp.extension.xdr.threatMonitor.entity.RiskIncident">
+        select id, name, event_code,start_time, end_time, event_ids, template_id, filter_content, data_source, create_time
+        from t_risk_incidents
+        <where>
+            <if test="ids != null and ids.size() != 0">
+                and id in
+                <foreach collection="ids" separator=","  open="(" close=")" item="item">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+
+    <select id="getCount" resultType="java.lang.Long">
+        select count(1)
+        from t_risk_incidents
+        <where>
+            <if test="name != null and name != ''">
+                name like '%\\' || #{name} || '%'
+            </if>
+            <if test="threatSeverity != null and threatSeverity.size() != null">
+                and threat_severity in
+                <foreach collection="threatSeverity" separator=","  open="(" close=")" item="sub">
+                    #{sub}
+                </foreach>
+            </if>
+            <if test="subCategory != null and subCategory.size() != null">
+                and second_event_type_chinese in
+                <foreach collection="subCategory" separator=","  open="(" close=")" item="sub">
+                    #{sub}
+                </foreach>
+            </if>
+            <if test="focusObject != null and focusObject != ''">
+                and focus_object = #{focusObject,jdbcType=VARCHAR}
+            </if>
+            <if test="focusIp != null and focusIp != ''">
+                and focus_ip like '%\\' || #{focusIp || jdbcType=VARCHAR} || '%'
+            </if>
+            <if test="alarmResult != null and alarmResult.size() != null">
+                and alarm_results in
+                <foreach collection="alarmResult" separator=","  open="(" close=")" item="sub">
+                    #{sub}
+                </foreach>
+            </if>
+            <if test="judgeResults != null and judgeResults.size != null">
+                and judge_result in
+                <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
+                    #{sub}
+                </foreach>
+            </if>
+            <if test="alarmStatus != null and alarmStatus.size != null">
+                and alarm_status in
+                <foreach collection="alarmStatus" separator=","  open="(" close=")" item="sub">
+                    #{sub}
+                </foreach>
+            </if>
+            and end_time between CAST(#{startTime} AS timestamp) and CAST(#{endTime} AS timestamp)
+        </where>
+    </select>
+
+
+    <select id="queryFocusIps" resultType="java.util.Map">
+        SELECT
+        focus_ip as focusIp,
+        TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI:SS') AS endTime,
+        cat_outcome as catOutCome,
+        kill_chain as killChain,
+        severity as severity,
+        payload as attackConclusion
+--         min( CASE WHEN cat_outcome = 'OK' THEN 1 WHEN cat_outcome = 'Attempt' THEN 2 WHEN cat_outcome = 'FAIL' THEN 3 ELSE 4 END ) AS catOutcome
+        FROM
+        t_risk_incidents_out_going
+        WHERE
+            uniq_code LIKE #{eventCode} || '%'
+        <if test="ip != null and ip != ''">
+            and focus_ip like '%\\' || #{ip} || '%'
+        </if>
+        ORDER BY
+        is_scenario desc,
+        catOutcome,
+        end_time DESC
+        LIMIT #{size} OFFSET ${offset};
+    </select>
+
+    <select id="queryFocusIpCount" resultType="java.lang.Long">
+        SELECT
+        COALESCE(sum(a.count),0)
+        from (
+        select 1 as count from t_risk_incidents_out_going
+        where uniq_code like  #{eventCode} || '%'
+        <if test="ip != null and ip != ''">
+            and focus_ip like '%\\' || #{ip} || '%'
+        </if>
+        GROUP BY focus_ip) as a;
+    </select>
+
+    <select id="getSecurityEventIdsByCondition" resultType="java.lang.String">
+        select t.id
+        from t_security_incidents t
+        <where>
+            <include refid="timeByParam"/>
+            <include refid="queryParamCondition"/>
+            <if test="eventName != null and eventName != ''">
+                and t.event_name = #{eventName}
+            </if>
+        </where>
+    </select>
+
+    <select id="countByDate" resultType="java.lang.Integer">
+        select count(*)
+        from t_risk_incidents
+        where DATE(create_time) = CAST(#{date} AS timestamp)
+    </select>
+
+    <select id="selectIncidentForCheckScenario" resultType="com.dbapp.extension.xdr.threatMonitor.entity.RiskIncident">
+        select * from t_risk_incidents
+        where
+            end_time >= CURRENT_TIMESTAMP - INTERVAL 12 HOUR
+        AND (is_scenario != 1 or is_scenario is NULL)
+        AND data_source = 'alert'
+    </select>
+
+    <select id="isHandled" resultType="java.lang.Integer">
+        select count(1) from t_risk_incidents
+        <where>
+            alarm_status='processed'
+            <if test="eventCodes != null and eventCodes.size() != 0">
+                and event_code in
+                <foreach collection="eventCodes" separator=","  open="(" close=")" item="eventCode">
+                    #{eventCode}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <update id="updateStatus" parameterType="com.dbapp.extension.xdr.threatMonitor.entity.RiskIncident">
+        UPDATE t_risk_incidents SET alarm_status =#{alarmStatus},update_time=CURRENT_TIMESTAMP WHERE event_code=#{eventCode}
+    </update>
+    <update id="updateJudgeResults">
+        UPDATE t_risk_incidents set judge_result = #{judgeResult} where id = #{id}
+    </update>
+
+    <update id="updateJudgeStatus">
+        UPDATE t_risk_incidents set judge_status = #{judgeStatus} where id = #{id}
+    </update>
+</mapper>

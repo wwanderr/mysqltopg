@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.AlarmStatusTimingTaskMapper">
+
+    <insert id="insertOrUpdate" parameterType="com.dbapp.extension.xdr.threatMonitor.entity.AlarmStatusTimingTask">
+        INSERT INTO t_alarm_status_timing_task (task_type,alarm_status,remarks,operator,`condition`,create_time,task_end_time,associated_field)
+        values (#{task.taskType,jdbcType=VARCHAR},#{task.alarmStatus,jdbcType=VARCHAR},#{task.remarks,jdbcType=VARCHAR},#{task.operator,jdbcType=VARCHAR},#{task.condition,jdbcType=VARCHAR},
+        #{task.createTime,jdbcType=VARCHAR},#{task.taskEndTime,jdbcType=VARCHAR},#{task.associatedField,jdbcType=VARCHAR})
+        ON DUPLICATE KEY UPDATE
+        task_type = values (task_type) ,alarm_status = values (alarm_status),remarks = values (remarks) ,operator = values (operator), `condition` = values (`condition`)
+    </insert>
+</mapper>

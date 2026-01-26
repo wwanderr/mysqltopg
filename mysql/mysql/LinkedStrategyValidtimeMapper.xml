@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.linkageHandle.mapper.LinkedStrategyValidtimeMapper">
+
+    <insert id="insertValidtime">
+        REPLACE INTO t_linkage_strategy_validtime (
+        link_device_ip,
+        end_time,
+        node_id,
+        direction,
+        effect_time,
+        <if test="prohibitHistory.blockDomain == null or prohibitHistory.blockDomain == ''">
+            block_ip
+        </if>
+        <if test="prohibitHistory.blockDomain != null and prohibitHistory.blockDomain != ''">
+            block_domain
+        </if>)
+        VALUES (
+        #{prohibitHistory.linkDeviceIp},
+        #{endTime},
+        #{prohibitHistory.nodeId},
+        #{prohibitHistory.direction},
+        #{prohibitHistory.effectTime},
+        <if test="prohibitHistory.blockDomain == null or prohibitHistory.blockDomain == ''">
+            #{prohibitHistory.blockIp}
+        </if>
+        <if test="prohibitHistory.blockDomain != null and prohibitHistory.blockDomain != ''">
+            #{prohibitHistory.blockDomain}
+        </if>
+        )
+    </insert>
+
+    <delete id="deleteEndtime">
+        DELETE FROM t_linkage_strategy_validtime WHERE link_device_ip = #{linkDeviceIp}
+        <if test="blockDomain == null or blockDomain == ''">
+            AND block_ip = #{blockIp}
+        </if>
+        <if test="blockDomain != null and blockDomain != ''">
+            AND block_domain = #{blockDomain}
+        </if>
+        <if test="nodeId != null and nodeId != ''">
+            AND node_id = #{nodeId}
+        </if>
+        <if test="direction != null and direction != ''">
+            AND direction = #{direction}
+        </if>
+        <if test="effectTime != null and effectTime != ''">
+            AND effect_time = #{effectTime}
+        </if>
+    </delete>
+
+    <select id="selectEndTime" resultType="com.dbapp.extension.xdr.linkageHandle.entity.EndTimeEntity">
+        SELECT
+        DISTINCT
+        a.id,
+        a.block_ip blockIp,
+        null blockDomain,
+        a.status,
+        a.create_type createType,
+        a.device_id deviceId,
+        a.link_device_ip linkDeviceIp,
+        a.link_device_type linkDeviceType,
+        a.nta_name ntaName,
+        a.strategy_id strategyId,
+        a.recovery_id recoveryId,
+        a.node_id nodeId,
+        a.direction,
+        a.effect_time effectTime,
+        a.node_ip nodeIp
+        FROM
+        t_prohibit_history a
+        left join
+        t_linkage_strategy_validtime b
+        on a.link_device_ip = b.link_device_ip and a.block_ip=b.block_ip and a.direction = b.direction
+        WHERE b.end_time &lt; #{nowTime} and a.status = 1
+        UNION ALL
+        SELECT
+        DISTINCT
+        c.id,
+        null blockIp,
+        c.block_domain blockDomain,
+        c.status,
+        c.create_type createType,
+        c.device_id deviceId,
+        c.link_device_ip linkDeviceIp,
+        c.link_device_type linkDeviceType,
+        c.nta_name ntaName,
+        c.strategy_id strategyId,
+        c.recovery_id recoveryId,
+        c.node_id nodeId,
+        c.direction,
+        c.effect_time effectTime,
+        c.node_ip nodeIp
+        FROM
+        t_prohibit_domain_history c
+        left join
+        t_linkage_strategy_validtime b
+        on c.link_device_ip = b.link_device_ip and c.block_domain=b.block_domain and c.direction = b.direction
+        WHERE b.end_time &lt; #{nowTime} and c.status = 1
+    </select>
+
+</mapper>

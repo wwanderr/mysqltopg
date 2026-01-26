@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatAnalysis.mapper.ThirdAuthMapper">
+
+    <select id="getThirdAuth" resultType="java.lang.String">
+        SELECT auth_tick
+        FROM `bigdata-web`.t_third_auth
+        <where>
+            <choose>
+                <when test="machineCode != null and machineCode != ''">
+                    machine_code = #{machineCode}
+                </when>
+                <otherwise>
+                    FIND_IN_SET(#{ip}, ip)
+                </otherwise>
+            </choose>
+        </where>
+        ORDER BY update_time DESC
+        LIMIT 1
+    </select>
+
+</mapper>

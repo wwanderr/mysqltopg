@@ -1,0 +1,990 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.SecurityEventMapper">
+
+    <select id="selectBaseInfoById" parameterType="java.lang.Integer" resultType="java.util.Map">
+    SELECT
+	tt.suggestion,
+	tt.description,
+	tt.ck_query_condition as queryCondition,
+	ti.attack_conclusion as attackConclusion ,
+		CASE ti.threat_severity
+		WHEN 'Low' THEN
+		'低'
+		WHEN 'Medium' THEN
+		'中'
+		WHEN 'High' THEN
+		'高'
+		ELSE
+		'未知'
+		END as threatSeverity,
+		CASE ti.alarm_results
+		WHEN 'OK' THEN
+		'成功'
+		WHEN 'FAIL' THEN
+		'失败'
+		WHEN 'UNKNOWN' THEN
+		'尝试'
+		ELSE
+		'尝试'
+		END as alarmResults,
+	ti.kill_chain as killChain ,
+	ti.sub_category as subCategory ,
+	ti.focus,
+	te.incident_suggestion as incidentSuggestion,
+	te.incident_description as incidentDescription,
+	ti.event_name as eventName,
+	ti.category,
+	ti.attacker,
+	ti.victim,
+	TO_CHAR(ti.start_time,'YYYY-MM-DD HH24:MI:SS') as startTime,
+	TO_CHAR(ti.end_time,'YYYY-MM-DD HH24:MI:SS') as endTime
+		FROM
+	t_security_incidents ti
+	LEFT JOIN t_query_template tt ON ti.template_code = tt.template_code
+	LEFT JOIN t_event_template te ON ti.template_id = te.id
+    WHERE
+	ti.id IN (
+	<foreach collection="ids" index="index" item="id" separator=",">
+		#{id,jdbcType=INTEGER}
+	</foreach> )
+    </select>
+
+	<select id="selectEventAndTempById" parameterType="java.lang.Integer" resultType="java.util.Map">
+	SELECT
+	TO_CHAR(MIN(ti.start_time),'YYYY-MM-DD HH24:MI:SS') as startTime,
+	TO_CHAR(MAX(ti.end_time),'YYYY-MM-DD HH24:MI:SS') as endTime,
+	STRING_AGG(ti.event_ids::TEXT, ',') as eventId,
+	tt.ck_query_field as ckQueryField,
+	tt.ck_query_agg_field as ckQueryAggField,
+	tt.ck_query_condition as ckQueryCondition,
+	tt.inner_query_field as innerQueryField,
+	tt.outer_query_field as outerQueryField,
+	tt.is_thread as isThread,
+	tt.agg_field as aggField,
+	STRING_AGG(ti.attacker::TEXT, ',') as attacker,
+	STRING_AGG(ti.victim::TEXT, ',') as victim,
+	ti.mirror_sub_category as subCategory,
+	STRING_AGG(ti.event_ids::TEXT, ',') as eventIds,
+	te.incident_name as templateName,
+	STRING_AGG(ti.family_id::TEXT, ',') as familyId,
+	STRING_AGG(ti.organization_id::TEXT, ',') as organizationId,
+	tt.interval_time as intervalTime,
+	ti.event_code as eventCode,
+	ti.event_name as eventName,
+	ti.event_name as incidentName,
+	te.incident_type as incidentType,
+	te.incident_rule_type as incidentRuleType,
+	ti.incident_cond as incidentCond,
+	ti.focus,
+	STRING_AGG(ti.focus_ip::TEXT, ',') as focusIp,
+	te.conclusion,
+	te.display_filed as displayFiled,
+	ti.sub_category as eventSubCategory,
+	MAX(ti.is_scenario) as isScenario
+	FROM
+	t_security_incidents ti
+	LEFT JOIN t_query_template tt ON ti.template_id = tt.id
+	LEFT JOIN t_event_template te ON ti.template_id = te.id
+	WHERE ti.id  IN (
+	<foreach collection="ids" separator="," item="id" index="index" >
+		#{id,jdbcType=INTEGER}
+	</foreach> )
+	</select>
+
+	<select id="selectNewEventAndTempById" parameterType="java.lang.Integer" resultType="java.util.Map">
+		SELECT
+		TO_CHAR(ti.end_time,'YYYY-MM-DD HH24:MI:SS') as endTime,
+		TO_CHAR(ti.start_time,'YYYY-MM-DD HH24:MI:SS') as startTime,
+		ti.event_code as eventCode,
+		ti.event_name as eventName,
+		tt.incident_rule_type as incidentRuleType,
+		ti.focus,
+		ti.focus_ip as focusIp,
+		ti.mirror_sub_category as subCategory,
+		tt.incident_type as incidentType,
+		tt.incident_name as incidentName,
+		tt.incident_cond as incidentCond,
+		tt.incident_suggestion as incidentSuggestion,
+		tt.incident_description as incidentDescription
+		FROM
+		t_security_incidents ti
+		LEFT JOIN
+		t_event_template tt
+		ON ti.template_id = tt.id
+		WHERE ti.id = #{id,jdbcType=INTEGER}
+	</select>
+
+	<select id="queryEventById" parameterType="java.util.List" resultType="java.lang.String">
+	SELECT
+	event_ids
+	FROM
+		t_security_incidents ti
+	WHERE
+		id IN
+		<foreach collection="list" item="id" index="index" open="(" close=")" separator=",">
+			#{id}
+		</foreach>
+	</select>
+
+	<select id="queryTrend" resultType="java.util.Map">
+		SELECT
+	CASE
+			threat_severity
+			WHEN 'Low' THEN
+			'low'
+			WHEN 'Medium' THEN
+			'medium'
+			WHEN 'High' THEN
+			'high' ELSE 'low'
+		END as threatSeverity,
+		TO_CHAR(DATE_TRUNC('day', end_time), 'YYYY-MM-DD 00:00:00') AS createTime,
+		count( 1 ) AS eventCount
+	FROM
+	t_security_incidents
+	WHERE start_time &gt;= CAST(#{startTime} AS timestamp)
+	AND end_time &lt;= CAST(#{endTime} AS timestamp)
+		GROUP BY
+		createTime,
+		threat_severity
+		ORDER BY
+		createTime ASC
+	</select>
+
+	<select id="selectAllByIdList" resultType="java.util.Map">
+		SELECT a.* ,CASE WHEN tk.associated_field IS NULL THEN FALSE ELSE TRUE END as isAutoHandle FROM (
+		SELECT DISTINCT
+		ti.id AS eventId,
+		ti.category AS category,
+		ti.sub_category AS subCategory,
+		CASE
+		alarm_status
+		WHEN 'unprocessed' THEN
+		'未处置'
+		WHEN 'processing' THEN
+		'处置中'
+		WHEN 'falsePositives' THEN
+		'已处置-标记误报'
+		WHEN 'processed' THEN
+		'已处置-完成'
+		WHEN 'ignore' THEN
+		'已处置-忽略'
+		END alarmStatus,
+		ti.focus_ip AS focusIp,
+		TO_CHAR( end_time, 'YYYY-MM-DD HH24:MI:SS' ) AS endTime,
+		TO_CHAR( start_time, 'YYYY-MM-DD HH24:MI:SS' ) AS startTime,
+		TO_CHAR( end_time, 'YYYY-MM-DD' ) AS timePart,
+		counts AS eventCount,
+		CASE
+		alarm_results
+		WHEN 'OK' THEN
+		'成功'
+		WHEN 'FAIL' THEN
+		'失败'
+		WHEN 'UNKNOWN' THEN
+		'尝试'
+		END alarmResults,
+		CASE
+		threat_severity
+		WHEN 'Low' THEN
+		'低'
+		WHEN 'Medium' THEN
+		'中'
+		WHEN 'High' THEN
+		'高' ELSE '未知'
+		END threatSeverity,
+		event_name AS alarmName,
+		tt.agg_field AS aggField,
+		ti.attacker,
+		ti.victim,
+		ti.focus,
+		ti.tag_search AS tagSearch,
+		CASE WHEN td.scenario_id IS NULL THEN FALSE ELSE TRUE END AS isScenario ,
+		tm.incident_type as incidentType
+		FROM
+		t_security_incidents ti
+		LEFT JOIN t_query_template tt ON ti.template_code = tt.template_code
+		LEFT JOIN t_event_scenario_data td ON ti.id = td.incident_id
+		LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+		WHERE
+		 ti.id IN
+		<foreach collection="evenIdList" item="item" open="(" separator="," close=")">
+			#{item,jdbcType=BIGINT}
+		</foreach>
+		) a
+		LEFT JOIN t_alarm_status_timing_task tk ON a.eventId = tk.associated_field
+		ORDER BY endTime DESC
+	</select>
+
+	<select id="queryOverview" resultType="java.util.Map">
+		SELECT
+	ti.threat_severity as threatSeverity,
+	count( 1 ) AS total
+	FROM
+		t_security_incidents ti
+	WHERE ti.start_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+	<if test="keyword != null and keyword != ''">
+		AND ti.event_name LIKE '%' || #{keyword} || '%'
+		OR ti.attacker LIKE '%' || #{keyword} || '%'
+		OR ti.victim LIKE '%' || #{keyword} || '%'
+	</if>
+	GROUP BY
+		ti.threat_severity
+	</select>
+
+	<select id="selectEventAndTempByIds" resultType="java.util.Map">
+		SELECT
+			ti.start_time as startTime,
+			ti.end_time as endTime,
+			ti.event_ids as eventId,
+			tt.ck_query_field as ckQueryField,
+			tt.ck_query_agg_field as ckQueryAggField,
+			tt.ck_query_condition as ckQueryCondition,
+			tt.inner_query_field as innerQueryField,
+			tt.outer_query_field as outerQueryField,
+			tt.is_thread as isThread,
+			tt.agg_field as aggField,
+			ti.attacker,
+			ti.victim,
+			ti.mirror_sub_category as subCategory,
+			ti.event_ids as eventIds
+		FROM
+			t_security_incidents ti
+		LEFT JOIN t_query_template tt
+		ON ti.template_id = tt.id
+		WHERE ti.id in
+		<foreach collection="ids" item="item" open="(" separator="," close=")">
+			#{item,jdbcType=BIGINT}
+		</foreach>
+	</select>
+
+	<select id="selectLogFieldsByIds" resultType="java.util.Map">
+		SELECT
+		ti.id as eventId,
+		te.netflow_log_field as netflowLogField,
+		te.host_log_field as hostLogField
+		FROM
+		t_security_incidents ti
+		LEFT JOIN t_event_template te ON ti.template_id = te.id
+		WHERE ti.id IN
+		<foreach collection="ids" item="item" open="(" separator="," close=")">
+			#{item,jdbcType=BIGINT}
+		</foreach>
+	</select>
+
+	<select id="getIncidentsTypePercent" resultType="java.util.Map">
+		SELECT count(1) as number,a.eventName  FROM (
+		SELECT
+		<choose>
+			<when test="flag == 1">
+				ti.sub_category as eventName
+			</when>
+			<otherwise>
+				ti.event_name as eventName
+			</otherwise>
+		</choose>
+		FROM
+		t_security_incidents ti
+		LEFT JOIN t_event_scenario_data td ON ti.id = td.incident_id
+		LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+		WHERE
+		ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+		<choose>
+			<when test="flag == 1">
+				AND ti.focus is not null
+			</when>
+			<otherwise>
+				AND ti.focus is null
+			</otherwise>
+		</choose>
+		<if test="scenarioType != null and scenarioType != ''">
+			${scenarioType}
+		</if>
+		<if test="eventName != null and eventName != ''">
+			AND ti.event_name LIKE '%' || #{eventName} || '%'
+		</if>
+		<if test="focusIp != null and focusIp != ''">
+			AND ti.focus_ip LIKE '%' || #{focusIp} || '%'
+		</if>
+		<if test="subCategory != null and subCategory.size() != 0">
+			AND ti.sub_category IN
+			<foreach collection="subCategory" separator=","  open="(" close=")" item="sub">
+				#{sub}
+			</foreach>
+		</if>
+		<if test="alarmStatus != null and alarmStatus.size() != 0">
+			AND ti.alarm_status IN
+			<foreach collection="alarmStatus" separator=","  open="(" close=")" item="status">
+				#{status}
+			</foreach>
+		</if>
+		<if test="alarmResult != null and alarmResult.size() != 0">
+			AND ti.alarm_results IN
+			<foreach collection="alarmResult" separator=","  open="(" close=")" item="result">
+				#{result}
+			</foreach>
+		</if>
+		<if test="threatSeverity != null and threatSeverity.size() != 0">
+			AND ti.threat_severity IN
+			<foreach collection="threatSeverity" separator=","  open="(" close=")" item="severity">
+				#{severity}
+			</foreach>
+		</if>
+		<if test="tagSearch != null and tagSearch.size() != 0">
+			AND
+			<foreach collection="tagSearch" separator="OR"  open="(" close=")" item="tag">
+				ti.tag_search LIKE '%' || #{tag} || '%'
+			</foreach>
+		</if>
+		<if test="killChain != null and killChain.size() > 0">
+			AND
+			<foreach collection="killChain" separator="AND" open="(" close=")" item="killC">
+				ti.kill_chain LIKE '%' || #{killC} || '%'
+			</foreach>
+		</if> ) as a
+		GROUP BY
+		a.eventName
+		ORDER BY
+		number
+	</select>
+
+	<select id="getSecurityEventList" resultType="java.util.Map">
+		SELECT a.* ,CASE WHEN tk.associated_field IS NULL THEN FALSE ELSE TRUE END as isAutoHandle FROM (
+		SELECT DISTINCT
+		ti.id AS eventId,
+		ti.category AS category,
+		ti.sub_category AS subCategory,
+		CASE
+		alarm_status
+		WHEN 'unprocessed' THEN
+		'未处置'
+		WHEN 'processing' THEN
+		'处置中'
+		WHEN 'falsePositives' THEN
+		'已处置-标记误报'
+		WHEN 'processed' THEN
+		'已处置-完成'
+		WHEN 'ignore' THEN
+		'已处置-忽略'
+		END alarmStatus,
+		ti.focus_ip AS focusIp,
+		TO_CHAR( end_time, 'YYYY-MM-DD HH24:MI:SS' ) AS endTime,
+		TO_CHAR( start_time, 'YYYY-MM-DD HH24:MI:SS' ) AS startTime,
+		TO_CHAR( end_time, 'YYYY-MM-DD' ) AS timePart,
+		counts AS eventCount,
+		CASE
+		alarm_results
+		WHEN 'OK' THEN
+		'成功'
+		WHEN 'FAIL' THEN
+		'失败'
+		WHEN 'UNKNOWN' THEN
+		'尝试'
+		END alarmResults,
+		CASE
+		threat_severity
+		WHEN 'Low' THEN
+		'低'
+		WHEN 'Medium' THEN
+		'中'
+		WHEN 'High' THEN
+		'高' ELSE '未知'
+		END threatSeverity,
+		event_name AS alarmName,
+		tt.agg_field AS aggField,
+		ti.attacker,
+		ti.victim,
+		ti.focus,
+		ti.tag_search AS tagSearch,
+		CASE WHEN td.scenario_id IS NULL THEN FALSE ELSE TRUE END AS isScenario ,
+		tm.incident_type as incidentType
+		FROM
+		t_security_incidents ti
+		LEFT JOIN t_query_template tt ON ti.template_code = tt.template_code
+		LEFT JOIN t_event_scenario_data td ON ti.id = td.incident_id
+		LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+		WHERE
+		ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+		<if test="eventName != null and eventName != ''">
+			AND ti.event_name LIKE '%\\' || #{eventName} || '%'
+		</if>
+		<if test="focusIp != null and focusIp != ''">
+			AND ti.focus_ip LIKE '%' || #{focusIp} || '%'
+		</if>
+		<if test="subCategory != null and subCategory.size() != 0">
+			AND ti.sub_category IN
+			<foreach collection="subCategory" separator=","  open="(" close=")" item="sub">
+				#{sub}
+			</foreach>
+		</if>
+		<if test="alarmStatus != null and alarmStatus.size() != 0">
+			AND ti.alarm_status IN
+			<foreach collection="alarmStatus" separator=","  open="(" close=")" item="status">
+				#{status}
+			</foreach>
+		</if>
+		<if test="alarmResult != null and alarmResult.size() != 0">
+			AND ti.alarm_results IN
+			<foreach collection="alarmResult" separator=","  open="(" close=")" item="result">
+				#{result}
+			</foreach>
+		</if>
+		<if test="threatSeverity != null and threatSeverity.size() != 0">
+			AND ti.threat_severity IN
+			<foreach collection="threatSeverity" separator=","  open="(" close=")" item="severity">
+				#{severity}
+			</foreach>
+		</if>
+		<if test="tagSearch != null and tagSearch.size() != 0">
+			AND
+			<foreach collection="tagSearch" separator="OR"  open="(" close=")" item="tag">
+				ti.tag_search LIKE '%' || #{tag} || '%'
+			</foreach>
+		</if>
+		<if test="killChain != null and killChain.size() > 0">
+			AND
+			<foreach collection="killChain" separator="AND" open="(" close=")" item="killC">
+				ti.kill_chain LIKE '%' || #{killC} || '%'
+			</foreach>
+		</if>
+		) a
+		LEFT JOIN t_alarm_status_timing_task tk ON a.eventId = tk.associated_field and task_type = 'SecurityEvent'
+		<if test="isScenario != null">
+			WHERE isScenario = #{isScenario,jdbcType=BOOLEAN}
+		</if>
+		ORDER BY
+		<choose>
+			<when test="orderByStr == null or orderByStr == ''">
+				endTime desc
+			</when>
+			<otherwise>
+				${orderByStr}
+			</otherwise>
+		</choose>
+		LIMIT #{size} OFFSET #{offset}
+	</select>
+
+	<select id="getKillChain" resultType="java.lang.String">
+		SELECT
+		ti.kill_chain as killChain
+		FROM t_security_incidents ti
+		LEFT JOIN t_event_scenario_data td ON ti.id = td.incident_id
+		WHERE
+		ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+		<if test="eventName != null and eventName != ''">
+			AND ti.event_name LIKE '%' || #{eventName} || '%'
+		</if>
+		<if test="scenarioType != null and scenarioType != ''">
+			${scenarioType}
+		</if>
+		<if test="focusIp != null and focusIp != ''">
+			AND ti.focus_ip LIKE '%' || #{focusIp} || '%'
+		</if>
+		<if test="subCategory != null and subCategory.size() != 0">
+			AND ti.sub_category IN
+			<foreach collection="subCategory" separator=","  open="(" close=")" item="sub">
+				#{sub}
+			</foreach>
+		</if>
+		<if test="alarmStatus != null and alarmStatus.size() != 0">
+			AND ti.alarm_status IN
+			<foreach collection="alarmStatus" separator=","  open="(" close=")" item="status">
+				#{status}
+			</foreach>
+		</if>
+		<if test="alarmResult != null and alarmResult.size() != 0">
+			AND ti.alarm_results IN
+			<foreach collection="alarmResult" separator=","  open="(" close=")" item="result">
+				#{result}
+			</foreach>
+		</if>
+		<if test="threatSeverity != null and threatSeverity.size() != 0">
+			AND ti.threat_severity IN
+			<foreach collection="threatSeverity" separator=","  open="(" close=")" item="severity">
+				#{severity}
+			</foreach>
+		</if>
+		<if test="tagSearch != null and tagSearch.size() != 0">
+			AND
+			<foreach collection="tagSearch" separator="OR"  open="(" close=")" item="tag">
+				ti.tag_search LIKE '%' || #{tag} || '%'
+			</foreach>
+		</if>
+		<if test="killChainList != null and killChainList.size() > 0">
+			AND
+			<foreach collection="killChainList" separator="AND" open="(" close=")" item="killC">
+				ti.kill_chain LIKE '%' || #{killC} || '%'
+			</foreach>
+		</if>
+	</select>
+
+	<select id="getSecurityEventListByFieldMapping" resultType="java.util.Map">
+		SELECT DISTINCT ti.id AS eventId,
+		ti.category as category,
+		ti.sub_category AS subCategory,
+		alarm_status AS alarmStatus,
+		ti.focus_ip as focusIp,
+		TO_CHAR(end_time,'YYYY-MM-DD HH24:MI:SS') as endTime,
+		TO_CHAR(start_time,'YYYY-MM-DD HH24:MI:SS') as startTime,
+		counts as eventCount,
+		alarm_results AS alarmResults,
+		threat_severity AS threatSeverity,
+		event_name as alarmName,
+		tt.agg_field as aggField,ti.attacker,ti.victim,ti.focus,
+		ti.tag_search as tagSearch,
+		CASE WHEN td.scenario_id IS NULL THEN FALSE ELSE TRUE END as isScenario
+		FROM t_security_incidents ti
+		LEFT JOIN t_query_template tt
+		ON ti.template_code = tt.template_code
+		LEFT JOIN t_event_scenario_data td ON ti.id = td.incident_id
+		WHERE
+		ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+		<if test="eventName != null and eventName != ''">
+			AND ti.event_name LIKE '%' || #{eventName} || '%'
+		</if>
+		<if test="focusIp != null and focusIp != ''">
+			AND ti.focus_ip LIKE '%' || #{focusIp} || '%'
+		</if>
+		<if test="subCategory != null and subCategory.size() != 0">
+			AND ti.sub_category IN
+			<foreach collection="subCategory" separator=","  open="(" close=")" item="sub">
+				#{sub}
+			</foreach>
+		</if>
+		<if test="alarmStatus != null and alarmStatus.size() != 0">
+			AND ti.alarm_status IN
+			<foreach collection="alarmStatus" separator=","  open="(" close=")" item="status">
+				#{status}
+			</foreach>
+		</if>
+		<if test="alarmResult != null and alarmResult.size() != 0">
+			AND ti.alarm_results IN
+			<foreach collection="alarmResult" separator=","  open="(" close=")" item="result">
+				#{result}
+			</foreach>
+		</if>
+		<if test="threatSeverity != null and threatSeverity.size() != 0">
+			AND ti.threat_severity IN
+			<foreach collection="threatSeverity" separator=","  open="(" close=")" item="severity">
+				#{severity}
+			</foreach>
+		</if>
+		<if test="tagSearch != null and tagSearch.size() != 0">
+			AND
+			<foreach collection="tagSearch" separator="OR"  open="(" close=")" item="tag">
+				ti.tag_search LIKE '%' || #{tag} || '%'
+			</foreach>
+		</if>
+		<if test="killChain != null and killChain.size() > 0">
+			AND
+			<foreach collection="killChain" separator="AND" open="(" close=")" item="killC">
+				ti.kill_chain LIKE '%' || #{killC} || '%'
+			</foreach>
+		</if>
+		order by
+		<choose>
+			<when test="orderByStr == null or orderByStr == ''">
+				end_time desc
+			</when>
+			<otherwise>
+				${orderByStr}
+			</otherwise>
+		</choose>
+		LIMIT #{size} OFFSET #{offset}
+	</select>
+
+	<select id="getTotal" resultType="long">
+		SELECT COUNT(1) FROM (
+		SELECT DISTINCT
+		ti.id AS eventId,
+		ti.category AS category,
+		ti.sub_category AS subCategory,
+		CASE
+		alarm_status
+		WHEN 'unprocessed' THEN
+		'未处置'
+		WHEN 'processing' THEN
+		'处置中'
+		WHEN 'falsePositives' THEN
+		'已处置-标记误报'
+		WHEN 'processed' THEN
+		'已处置-完成'
+		WHEN 'ignore' THEN
+		'已处置-忽略'
+		END alarmStatus,
+		ti.focus_ip AS focusIp,
+		TO_CHAR( end_time, 'YYYY-MM-DD HH24:MI:SS' ) AS endTime,
+		TO_CHAR( start_time, 'YYYY-MM-DD HH24:MI:SS' ) AS startTime,
+		TO_CHAR( end_time, 'YYYY-MM-DD' ) AS timePart,
+		counts AS eventCount,
+		CASE
+		alarm_results
+		WHEN 'OK' THEN
+		'成功'
+		WHEN 'FAIL' THEN
+		'失败'
+		WHEN 'UNKNOWN' THEN
+		'尝试'
+		END alarmResults,
+		CASE
+		threat_severity
+		WHEN 'Low' THEN
+		'低'
+		WHEN 'Medium' THEN
+		'中'
+		WHEN 'High' THEN
+		'高' ELSE '未知'
+		END threatSeverity,
+		event_name AS alarmName,
+		tt.agg_field AS aggField,
+		ti.attacker,
+		ti.victim,
+		ti.focus,
+		ti.tag_search AS tagSearch,
+		CASE WHEN td.scenario_id IS NULL THEN FALSE ELSE TRUE END AS isScenario ,
+		tm.incident_type as incidentType
+		FROM
+		t_security_incidents ti
+		LEFT JOIN t_query_template tt ON ti.template_code = tt.template_code
+		LEFT JOIN t_event_scenario_data td ON ti.id = td.incident_id
+		LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+		WHERE
+		ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+		<if test="eventName != null and eventName != ''">
+			AND ti.event_name LIKE '%' || #{eventName} || '%'
+		</if>
+		<if test="focusIp != null and focusIp != ''">
+			AND ti.focus_ip LIKE '%' || #{focusIp} || '%'
+		</if>
+		<if test="subCategory != null and subCategory.size() != 0">
+			AND ti.sub_category IN
+			<foreach collection="subCategory" separator=","  open="(" close=")" item="sub">
+				#{sub}
+			</foreach>
+		</if>
+		<if test="alarmStatus != null and alarmStatus.size() != 0">
+			AND ti.alarm_status IN
+			<foreach collection="alarmStatus" separator=","  open="(" close=")" item="status">
+				#{status}
+			</foreach>
+		</if>
+		<if test="alarmResult != null and alarmResult.size() != 0">
+			AND ti.alarm_results IN
+			<foreach collection="alarmResult" separator=","  open="(" close=")" item="result">
+				#{result}
+			</foreach>
+		</if>
+		<if test="threatSeverity != null and threatSeverity.size() != 0">
+			AND ti.threat_severity IN
+			<foreach collection="threatSeverity" separator=","  open="(" close=")" item="severity">
+				#{severity}
+			</foreach>
+		</if>
+		<if test="tagSearch != null and tagSearch.size() != 0">
+			AND
+			<foreach collection="tagSearch" separator="OR"  open="(" close=")" item="tag">
+				ti.tag_search LIKE '%' || #{tag} || '%'
+			</foreach>
+		</if>
+		<if test="killChain != null and killChain.size() > 0">
+			AND
+			<foreach collection="killChain" separator="AND" open="(" close=")" item="killC">
+				ti.kill_chain LIKE '%' || #{killC} || '%'
+			</foreach>
+		</if> ) a
+		<if test="isScenario != null">
+			WHERE isScenario = #{isScenario,jdbcType=BOOLEAN}
+		</if>
+	</select>
+
+	<select id="queryEventCount" resultType="java.util.Map">
+		select count(1) as eventCount,a.threatSeverity from (
+		SELECT
+		threat_severity AS threatSeverity
+		FROM
+		t_security_incidents ti
+		LEFT JOIN t_event_scenario_data td ON ti.id = td.incident_id
+		LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+		WHERE
+		ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+		<if test="eventName != null and eventName != ''">
+			AND ti.event_name LIKE '%' || #{eventName} || '%'
+		</if>
+		<if test="scenarioType != null and scenarioType != ''">
+			${scenarioType}
+		</if>
+		<if test="focusIp != null and focusIp != ''">
+			AND ti.focus_ip LIKE '%' || #{focusIp} || '%'
+		</if>
+		<if test="subCategory != null and subCategory.size() != 0">
+			AND ti.sub_category IN
+			<foreach collection="subCategory" separator=","  open="(" close=")" item="sub">
+				#{sub}
+			</foreach>
+		</if>
+		<if test="alarmStatus != null and alarmStatus.size() != 0">
+			AND ti.alarm_status IN
+			<foreach collection="alarmStatus" separator=","  open="(" close=")" item="status">
+				#{status}
+			</foreach>
+		</if>
+		<if test="alarmResult != null and alarmResult.size() != 0">
+			AND ti.alarm_results IN
+			<foreach collection="alarmResult" separator=","  open="(" close=")" item="result">
+				#{result}
+			</foreach>
+		</if>
+		<if test="threatSeverity != null and threatSeverity.size() != 0">
+			AND ti.threat_severity IN
+			<foreach collection="threatSeverity" separator=","  open="(" close=")" item="severity">
+				#{severity}
+			</foreach>
+		</if>
+		<if test="tagSearch != null and tagSearch.size() != 0">
+			AND
+			<foreach collection="tagSearch" separator="OR"  open="(" close=")" item="tag">
+				ti.tag_search LIKE '%' || #{tag} || '%'
+			</foreach>
+		</if>
+		<if test="killChain != null and killChain.size() > 0">
+			AND
+			<foreach collection="killChain" separator="AND" open="(" close=")" item="killC">
+				ti.kill_chain LIKE '%' || #{killC} || '%'
+			</foreach>
+		</if> ) a
+		GROUP BY a.threatSeverity
+	</select>
+
+	<!-- 
+		注意：以下INSERT语句使用ON CONFLICT需要指定唯一约束列
+		请根据实际表结构确认冲突列，示例中假设为event_code
+	-->
+	<insert id="insertOrUpdate" parameterType="com.dbapp.extension.xdr.threatMonitor.entity.SecurityEvent" useGeneratedKeys="true" keyProperty="id">
+	 INSERT INTO t_security_incidents
+		( kill_chain, sub_category, fail_count, counts, attack_conclusion, succeed_count, focus, attacker, threat_severity,  template_id, mirror_sub_category,
+		event_code, organization_id, family_id, alarm_status, create_time, alarm_results, event_name, victim, start_time, end_time, category, focus_ip,incident_cond,tag_search,is_scenario)
+	 VALUES
+	 	(#{killChain,jdbcType=VARCHAR},#{subCategory,jdbcType=VARCHAR},#{failCount,jdbcType=INTEGER},#{counts,jdbcType=INTEGER},#{attackConclusion,jdbcType=VARCHAR},
+		#{succeedCount,jdbcType=INTEGER},#{focus,jdbcType=VARCHAR},#{attacker,jdbcType=VARCHAR},#{threatSeverity,jdbcType=VARCHAR},#{templateId,jdbcType=INTEGER},
+		#{mirrorSubCategory,jdbcType=VARCHAR},#{eventCode,jdbcType=VARCHAR},#{organizationId,jdbcType=VARCHAR},#{familyId,jdbcType=VARCHAR},#{alarmStatus,jdbcType=VARCHAR},
+		CAST(#{createTime} AS timestamp),#{alarmResults,jdbcType=VARCHAR},#{eventName,jdbcType=VARCHAR},#{victim,jdbcType=VARCHAR},CAST(#{startTime} AS timestamp),
+		CAST(#{endTime} AS timestamp),#{category,jdbcType=VARCHAR},#{focusIp,jdbcType=VARCHAR},#{incidentCond,jdbcType=VARCHAR},#{tagSearch,jdbcType=VARCHAR},#{isScenario,jdbcType=INTEGER})
+	ON CONFLICT (event_code) DO UPDATE SET
+		kill_chain = EXCLUDED.kill_chain,fail_count = EXCLUDED.fail_count ,counts = EXCLUDED.counts,attack_conclusion = EXCLUDED.attack_conclusion,succeed_count= EXCLUDED.succeed_count,
+		attacker = EXCLUDED.attacker,threat_severity = EXCLUDED.threat_severity,organization_id = EXCLUDED.organization_id,
+		family_id = EXCLUDED.family_id,alarm_status = EXCLUDED.alarm_status,create_time = EXCLUDED.create_time,alarm_results = EXCLUDED.alarm_results,victim = EXCLUDED.victim,
+		start_time = LEAST( start_time, EXCLUDED.start_time),end_time = GREATEST(end_time, EXCLUDED.end_time),focus_ip = EXCLUDED.focus_ip,incident_cond = EXCLUDED.incident_cond,tag_search = EXCLUDED.tag_search,is_scenario = COALESCE(GREATEST(EXCLUDED.is_scenario, is_scenario),EXCLUDED.is_scenario, is_scenario)
+	</insert>
+
+	<insert id="updateStatus" parameterType="com.dbapp.extension.xdr.threatMonitor.entity.SecurityEvent" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO t_security_incidents
+		    (event_code, alarm_status)
+		VALUES
+			(#{eventCode},#{alarmStatus})
+		ON CONFLICT (event_code) DO UPDATE SET
+			alarm_status = EXCLUDED.alarm_status,update_time=CURRENT_TIMESTAMP
+	</insert>
+
+	<insert id="batchInsert"  useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO t_security_incidents
+		( kill_chain, sub_category, fail_count, counts, attack_conclusion, succeed_count, focus, attacker, threat_severity,  template_id, mirror_sub_category,
+		event_code, organization_id, family_id, alarm_status, alarm_results, event_name, victim, start_time, end_time, category, focus_ip,incident_cond,tag_search,is_scenario
+		,update_ip_information )
+		VALUES
+		<foreach collection="eventList" separator="," open="" close="" item="event" index="index">
+		(#{event.killChain,jdbcType=VARCHAR},#{event.subCategory,jdbcType=VARCHAR},#{event.failCount,jdbcType=INTEGER},#{event.counts,jdbcType=INTEGER},#{event.attackConclusion,jdbcType=VARCHAR},
+		#{event.succeedCount,jdbcType=INTEGER},#{event.focus,jdbcType=VARCHAR},#{event.attacker,jdbcType=VARCHAR},#{event.threatSeverity,jdbcType=VARCHAR},#{event.templateId,jdbcType=INTEGER},
+		#{event.mirrorSubCategory,jdbcType=VARCHAR},#{event.eventCode,jdbcType=VARCHAR},#{event.organizationId,jdbcType=VARCHAR},#{event.familyId,jdbcType=VARCHAR},#{event.alarmStatus,jdbcType=VARCHAR},#{event.alarmResults,jdbcType=VARCHAR},#{event.eventName,jdbcType=VARCHAR},#{event.victim,jdbcType=VARCHAR},CAST(#{event.startTime} AS timestamp),
+		CAST(#{event.endTime} AS timestamp),#{event.category,jdbcType=VARCHAR},#{event.focusIp,jdbcType=VARCHAR},#{event.incidentCond,jdbcType=VARCHAR},#{event.tagSearch,jdbcType=VARCHAR},#{event.isScenario,jdbcType=INTEGER},#{event.updateIpInformation,jdbcType=VARCHAR})
+		</foreach>
+		ON CONFLICT (event_code) DO UPDATE SET
+		kill_chain = EXCLUDED.kill_chain,fail_count = EXCLUDED.fail_count ,counts = EXCLUDED.counts,attack_conclusion = EXCLUDED.attack_conclusion,succeed_count= EXCLUDED.succeed_count,
+		attacker = EXCLUDED.attacker,threat_severity = EXCLUDED.threat_severity,organization_id = EXCLUDED.organization_id,
+		family_id = EXCLUDED.family_id,alarm_status = EXCLUDED.alarm_status,alarm_results = EXCLUDED.alarm_results,victim = EXCLUDED.victim,
+		start_time = LEAST( start_time, EXCLUDED.start_time),end_time = GREATEST(end_time, EXCLUDED.end_time),focus_ip = EXCLUDED.focus_ip,incident_cond = EXCLUDED.incident_cond,tag_search = EXCLUDED.tag_search,is_scenario = COALESCE(GREATEST(EXCLUDED.is_scenario, is_scenario),EXCLUDED.is_scenario, is_scenario),
+		update_ip_information = EXCLUDED.update_ip_information,update_time=CURRENT_TIMESTAMP
+	</insert>
+
+
+
+
+	<resultMap id="baseResultMap" type="com.dbapp.extension.xdr.threatMonitor.entity.SecurityEvent">
+		<id column="id" property="id" jdbcType="VARCHAR"/>
+		<result column="event_name" property="eventName" jdbcType="VARCHAR"/>
+		<result column="attack_conclusion" property="attackConclusion" jdbcType="VARCHAR"/>
+		<result column="threat_severity" property="threatSeverity" jdbcType="VARCHAR"/>
+		<result column="start_time" property="startTime" jdbcType="VARCHAR"/>
+		<result column="end_time" property="endTime" jdbcType="VARCHAR"/>
+		<result column="attacker" property="attacker" jdbcType="VARCHAR"/>
+		<result column="victim" property="victim" jdbcType="VARCHAR"/>
+		<result column="counts" property="counts" jdbcType="VARCHAR"/>
+		<result column="alarm_status" property="alarmStatus" jdbcType="VARCHAR"/>
+		<result column="alarm_results" property="alarmResults" jdbcType="VARCHAR"/>
+		<result column="kill_chain" property="killChain" jdbcType="VARCHAR"/>
+		<result column="succeed_count" property="succeedCount" jdbcType="INTEGER"/>
+		<result column="fail_count" property="failCount" jdbcType="INTEGER"/>
+		<result column="family_id" property="familyId" jdbcType="VARCHAR"/>
+		<result column="organization_id" property="organizationId" jdbcType="VARCHAR"/>
+		<result column="focus" property="focus" jdbcType="VARCHAR"/>
+		<result column="event_code" property="eventCode" jdbcType="VARCHAR"/>
+		<result column="focus_ip" property="focusIp" jdbcType="VARCHAR"/>
+		<result column="incident_cond" property="incidentCond" jdbcType="VARCHAR"/>
+		<result column="tag_search" property="tagSearch" jdbcType="VARCHAR"/>
+		<result column="mirror_sub_category" property="mirrorSubCategory" jdbcType="VARCHAR"/>
+		<result column="sub_category" property="subCategory" jdbcType="VARCHAR"/>
+		<result column="template_id" property="templateId" jdbcType="INTEGER"/>
+		<result column="create_time" property="createTime" jdbcType="VARCHAR"/>
+		<result column="category" property="category" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<select id="queryByEventCode" parameterType="java.lang.String" resultMap="baseResultMap">
+		select id,kill_chain, sub_category, fail_count, counts, attack_conclusion, succeed_count, focus, attacker, threat_severity,  template_id, mirror_sub_category,
+		event_code, organization_id, family_id, alarm_status, create_time, alarm_results, event_name, victim, start_time, end_time, category, focus_ip,incident_cond,tag_search
+		from t_security_incidents
+		where event_code = #{eventCode,jdbcType=VARCHAR}
+		LIMIT 1
+	</select>
+
+	<update id="updateAlarmResultById">
+		UPDATE t_security_incidents SET alarm_results = #{alarmResults,jdbcType=VARCHAR},is_scenario=1 WHERE id = #{eventId,jdbcType=INTEGER}
+	</update>
+
+	<select id="getExistThreadEvents" resultType="com.dbapp.extension.xdr.threatMonitor.entity.ThreadEvent">
+		select a.incident_name incidentName,a.id templateId,a.incident_rule_type incidentRuleType,a.priority,a.focus,a.incident_cond as incidentCond,STRING_AGG(t.focus_ip::TEXT, ',') focusIp
+		from t_event_thread t left join t_event_template a on t.template_id = a.id
+		where t.time_part = #{timePart} and t.is_delete != true group by a.incident_name,a.id,a.incident_rule_type,a.priority,a.focus,a.incident_cond order by a.priority desc;
+	</select>
+
+	<insert id="insertBatchThreadEvents">
+		INSERT INTO t_event_thread
+		(template_id, incident_name, focus, focus_ip, time_part, event_code, attacker, victim, end_time)
+		VALUES
+		<foreach collection="events" item="event" separator=",">
+			(#{event.templateId},#{event.incidentName},#{event.focus},#{event.focusIp},#{event.timePart},#{event.eventCode},#{event.attacker},#{event.victim},CAST(#{event.endTime} AS timestamp))
+		</foreach>
+		ON CONFLICT (event_code) DO UPDATE SET
+		template_id = EXCLUDED.template_id,
+		incident_name = EXCLUDED.incident_name,
+		focus = EXCLUDED.focus,
+		focus_ip = EXCLUDED.focus_ip,
+		time_part = EXCLUDED.time_part,
+		attacker = EXCLUDED.attacker,
+		victim = EXCLUDED.victim,
+		end_time = EXCLUDED.end_time
+	</insert>
+
+	<update id="updateThreadLowPriority">
+		update t_event_thread t set is_delete=true
+		from t_event_template a
+		where t.template_id = a.id and t.time_part = #{timePart} and t.focus =#{focus} and t.focus_ip =#{focusIp} and a.priority &gt; #{priority} and t.is_delete=false
+	</update>
+
+	<delete id="deleteLowPriority">
+		delete from t_security_incidents where event_code in
+		(select t.event_code  from t_event_thread t left join t_event_template a on t.template_id = a.id
+		where t.time_part = #{timePart} and t.focus =#{focus} and t.focus_ip =#{focusIp} and a.priority &gt; #{priority} and t.is_delete=false);
+	</delete>
+
+	<insert id="insertBatchSecurityAlarm">
+		INSERT INTO t_security_alarm_temp
+		(window_id, agg_condition, event_id, src_address, dest_address, attacker, victim,
+		 sub_category, start_time, end_time, alarm_results, kill_chain, tag_search, threat_severity,
+		family_id,organization_id,time_part)
+		VALUES
+		<foreach collection="alarms" item="alarm" separator=",">
+			(#{alarm.windowId},#{alarm.aggCondition},#{alarm.eventId},#{alarm.srcAddress},#{alarm.destAddress},
+			 #{alarm.attacker,typeHandler=com.dbapp.extension.xdr.handler.ArrayHandler},
+			 #{alarm.victim,typeHandler=com.dbapp.extension.xdr.handler.ArrayHandler},#{alarm.subCategory},
+			CAST(#{alarm.startTime} AS timestamp),CAST(#{alarm.endTime} AS timestamp),#{alarm.alarmResults},#{alarm.killChain},
+			 #{alarm.tagSearch,typeHandler=com.dbapp.extension.xdr.handler.JSONListHandler},#{alarm.threatSeverity},
+			#{alarm.familyId},#{alarm.organizationId},TO_CHAR(CAST(#{alarm.startTime} AS timestamp)::TIMESTAMP,'YYYYMMDD'))
+		</foreach>
+	</insert>
+
+	<resultMap id="alarmInfoMap" type="com.dbapp.extension.xdr.logCorrelation.entity.AlarmInfo">
+		<result column="window_id" property="windowId" jdbcType="VARCHAR"/>
+		<result column="agg_condition" property="aggCondition" jdbcType="VARCHAR"/>
+		<result column="event_id" property="eventId" jdbcType="VARCHAR"/>
+		<result column="src_address" property="srcAddress" jdbcType="VARCHAR"/>
+		<result column="dest_address" property="destAddress" jdbcType="VARCHAR"/>
+		<result column="attacker" property="attacker" jdbcType="VARCHAR" typeHandler="com.dbapp.extension.xdr.handler.ArrayHandler"/>
+		<result column="victim" property="victim" jdbcType="VARCHAR" typeHandler="com.dbapp.extension.xdr.handler.ArrayHandler"/>
+		<result column="sub_category" property="subCategory" jdbcType="VARCHAR"/>
+		<result column="start_time" property="startTime" jdbcType="TIMESTAMP"/>
+		<result column="end_time" property="endTime" jdbcType="TIMESTAMP"/>
+		<result column="alarm_results" property="alarmResults" jdbcType="VARCHAR"/>
+		<result column="family_id" property="familyId" jdbcType="VARCHAR"/>
+		<result column="organization_id" property="organizationId" jdbcType="VARCHAR"/>
+		<result column="kill_chain" property="killChain" jdbcType="INTEGER"/>
+		<result column="tag_search" property="tagSearch" jdbcType="INTEGER" typeHandler="com.dbapp.extension.xdr.handler.JSONListHandler" javaType="String"/>
+		<result column="threat_severity" property="threatSeverity" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<select id="queryThreadAlarm" resultMap="alarmInfoMap">
+		select * from t_security_alarm_temp t
+		where t.time_part=#{timePart}
+			<if test='attacker!=null and attacker!=""'>
+				and attacker = #{attacker}
+			</if>
+			<if test='victim!=null and victim!=""'>
+				and victim = #{victim}
+			</if>
+			<if test='subCategory!=null and subCategory!=""'>
+				and sub_category = #{subCategory}
+			</if>
+		order by t.end_time desc,t.event_id desc LIMIT 1000 OFFSET #{offset};
+	</select>
+
+	<select id="getMinTime" resultType="java.time.LocalDateTime">
+		select end_time from t_security_alarm_temp t
+		where t.time_part=#{timePart} order by t.end_time asc LIMIT 1;
+	</select>
+
+	<select id="getOneHourTime" resultType="java.time.LocalDateTime">
+		select end_time - INTERVAL '1 hour' from t_security_alarm_temp order by start_time desc LIMIT 1
+	</select>
+
+	<delete id="deleteOneHourLeft">
+		delete from t_security_alarm_temp where end_time &lt; CAST(CAST(#{time} AS timestamp) AS timestamp)
+	</delete>
+
+	<delete id="deleteTimingTask">
+		delete from t_alarm_status_timing_task where associated_field in(
+			select id from t_security_incidents where event_code in
+											   (select t.event_code  from t_event_thread t left join t_event_template a on t.template_id = a.id
+												where t.time_part = #{timePart} and t.focus =#{focus} and t.focus_ip =#{focusIp} and a.priority &gt; #{priority} and t.is_delete=false)
+												)
+	</delete>
+
+
+	<select id="getSecurityEventOutGoingTemplate" resultType="java.util.Map">
+	SELECT
+	ti.id as eventId,
+	ti.event_code as eventCode,
+	TO_CHAR(ti.start_time,'YYYY-MM-DD HH24:MI:SS') as startTime,
+	TO_CHAR(ti.end_time,'YYYY-MM-DD HH24:MI:SS') as endTime,
+	ti.attacker,
+	ti.victim,
+	ti.mirror_sub_category as subCategory,
+	te.incident_name as templateName,
+	ti.event_name as incidentName,
+	te.incident_type as incidentType,
+	ti.incident_cond as incidentCond,
+	ti.focus,
+	ti.focus_ip as focusIp,
+	ti.sub_category as eventSubCategory,
+	ti.category as eventCategory,
+	te.incident_children as incidentChildren,
+	ti.mirror_sub_category as mirrorSubCategory,
+	ti.tag_search as tagSearch,
+	te.incident_description as incidentDescription,
+	te.incident_suggestion as incidentSuggestion
+	FROM
+	t_security_incidents ti
+	LEFT JOIN t_event_template te ON ti.template_id = te.id
+	WHERE ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+	AND te."enable" = true
+	LIMIT ${size} OFFSET ${offset}
+	</select>
+
+</mapper>

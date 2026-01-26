@@ -1,0 +1,59 @@
+<!-- PostgreSQL相关依赖配置 -->
+<!-- 添加到你的 pom.xml 中 -->
+
+<dependencies>
+    <!-- PostgreSQL JDBC驱动 -->
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>42.7.1</version>
+        <scope>runtime</scope>
+    </dependency>
+    
+    <!-- Spring Boot Data JPA（可选，如果使用JPA）-->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    
+    <!-- MyBatis Spring Boot Starter -->
+    <dependency>
+        <groupId>org.mybatis.spring.boot</groupId>
+        <artifactId>mybatis-spring-boot-starter</artifactId>
+        <version>3.0.3</version>
+    </dependency>
+    
+    <!-- HikariCP（连接池，Spring Boot默认使用）-->
+    <dependency>
+        <groupId>com.zaxxer</groupId>
+        <artifactId>HikariCP</artifactId>
+    </dependency>
+    
+    <!-- Lombok（简化实体类）-->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <optional>true</optional>
+    </dependency>
+    
+    <!-- Spring Boot Test -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+
+<!-- 
+使用说明:
+1. PostgreSQL JDBC驱动版本 42.7.1 是截至2024年的稳定版本
+2. 该版本完美支持 LocalDateTime 与 PostgreSQL timestamp 的转换
+3. 确保Java版本为 8 或以上（推荐使用 11 或 17）
+-->
+
+<!-- 
+版本对应关系:
+- PostgreSQL JDBC 42.x.x: 支持PostgreSQL 8.2+, 需要Java 8+
+- Spring Boot 3.x: 需要Java 17+
+- Spring Boot 2.x: 支持Java 8+
+-->

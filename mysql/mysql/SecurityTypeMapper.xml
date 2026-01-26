@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.SecurityTypeMapper">
+
+
+	<resultMap id="baseResultMap" type="com.dbapp.extension.xdr.threatMonitor.entity.SecurityType">
+		<result column="sub_category" property="subCategory" jdbcType="VARCHAR"/>
+		<result column="category" property="category" jdbcType="VARCHAR"/>
+	</resultMap>
+	<select id="queryTypes" resultMap="baseResultMap" >
+	SELECT
+	DISTINCT incident_sub_class_type as sub_category,
+	incident_class_type as category
+	FROM
+	t_event_template
+	</select>
+
+	<select id="truncate">
+ 		truncate table t_security_types
+	</select>
+
+	<insert id="branchInsert" parameterType="com.dbapp.extension.xdr.threatMonitor.entity.SecurityType" keyProperty="id" useGeneratedKeys="true">
+			INSERT INTO t_security_types (`mirror_sub_category`,`mirror_category`,`sub_category_name`,`category_name`,`is_enable`)
+			values
+		<foreach collection="list" item="securityTypes" separator=",">
+			(#{securityTypes.mirrorSubCategory,jdbcType=VARCHAR},#{securityTypes.mirrorCategory,jdbcType=VARCHAR},
+			#{securityTypes.subCategoryName,jdbcType=VARCHAR},#{securityTypes.categoryName,jdbcType=VARCHAR},#{securityTypes.isEnable,jdbcType=INTEGER})
+		</foreach>
+		ON DUPLICATE KEY UPDATE
+		mirror_sub_category = values (mirror_sub_category),mirror_category = values (mirror_category),
+		sub_category_name = values (sub_category_name) , category_name = values (category_name)
+	</insert>
+</mapper>

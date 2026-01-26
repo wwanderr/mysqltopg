@@ -1,0 +1,593 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.vulnerabilityAnalysis.mapper.VulAnalysisSubMapper">
+
+    <!-- 
+        注意：ON CONFLICT需要指定唯一约束列
+        请根据实际表结构确认冲突列，示例中假设为event_code
+    -->
+    <insert id="insertOrUpdate" parameterType="com.dbapp.extension.xdr.vulnerabilityAnalysis.entity.VulAnalysisSub" useGeneratedKeys="true" keyColumn="id">
+        INSERT INTO t_vul_analysis_sub (   end_time,  start_time,  alarm_result, alarm_status,  app_protocol,  clear_text,  request_url,  cve,
+          severity_level,  vulnerability_name,  class_type,  src_user_name, passwd,  "Medium",  High,  Low,  agg_count,  event_code, update_time,
+         "source", chart_id , asset_ip , asset_name , dest_security_zone , asset_type,asset_tags )
+        VALUES
+        (CAST(#{endTime} AS timestamp),CAST(#{startTime} AS timestamp),#{alarmResult,jdbcType=INTEGER},#{alarmStatus,jdbcType=INTEGER},
+        #{appProtocol,jdbcType=VARCHAR},#{clearText,jdbcType=VARCHAR},#{requestUrl,jdbcType=VARCHAR},#{cve,jdbcType=VARCHAR},#{severityLevel,jdbcType=VARCHAR},
+        #{vulnerabilityName,jdbcType=VARCHAR},#{classType,jdbcType=VARCHAR},#{srcUserName,jdbcType=VARCHAR},#{passwd,jdbcType=VARCHAR},#{medium,jdbcType=BIGINT},
+        #{High,jdbcType=BIGINT},#{Low,jdbcType=BIGINT},#{aggCount,jdbcType=BIGINT},#{eventCode,jdbcType=VARCHAR},CAST(#{updateTime} AS timestamp),
+        #{source,jdbcType=INTEGER},#{chartId,jdbcType=INTEGER},#{assetIp,jdbcType=VARCHAR},#{assetName,jdbcType=VARCHAR},#{destSecurityZone,jdbcType=VARCHAR},
+        #{assetType,jdbcType=VARCHAR},#{assetTags,jdbcType=VARCHAR})
+        ON CONFLICT (event_code) DO UPDATE SET
+        end_time = EXCLUDED.end_time,alarm_result = COALESCE(GREATEST(EXCLUDED.alarm_result, alarm_result),EXCLUDED.alarm_result,alarm_result),
+        alarm_status  = EXCLUDED.alarm_status , app_protocol = EXCLUDED.app_protocol, clear_text = EXCLUDED.clear_text,
+        request_url = EXCLUDED.request_url ,cve = EXCLUDED.cve, severity_level = EXCLUDED.severity_level, vulnerability_name = EXCLUDED.vulnerability_name,class_type = EXCLUDED.class_type,
+        src_user_name = EXCLUDED.src_user_name,passwd = EXCLUDED.passwd,"Medium" = "Medium" +#{Medium,jdbcType=BIGINT},High = High + #{High,jdbcType=BIGINT}, Low = Low + #{Low,jdbcType=BIGINT},
+        agg_count = agg_count + #{aggCount,jdbcType=BIGINT} ,update_time = EXCLUDED.update_time,"source" = EXCLUDED."source", asset_name = EXCLUDED.asset_name , dest_security_zone = EXCLUDED.dest_security_zone ,
+        asset_type = EXCLUDED.asset_type,asset_tags = EXCLUDED.asset_tags
+    </insert>
+
+    <!-- 
+        注意：以下SQL包含跨数据库引用 `bigdata-web`
+        PostgreSQL中需要使用schema引用，如：bigdata_web.t_asset_info
+        请根据实际情况修改表名引用
+    -->
+    <select id="queryListCount" parameterType="java.util.Map" resultType="java.lang.Long">
+        SELECT count(1) FROM (
+        SELECT
+        TO_CHAR(MAX( ts.end_time ),'YYYY-MM-DD HH24:MI:SS') as endTime,
+        TO_CHAR(MIN( ts.start_time ),'YYYY-MM-DD HH24:MI:SS') as startTime,
+        ts.asset_ip as assetIp,
+        ti.assetType,
+        count( 1 ) AS aggCount,
+        MAX( ts.alarm_status ) AS alarmStatus ,
+        MAX( ts.alarm_result ) AS alarmResults,
+        ti.assetName,
+        COALESCE(f."name",'未分配') as destSecurityZone
+        FROM
+        t_vul_analysis_sub ts
+        LEFT JOIN bigdata_web.t_asset_info ti on ts.asset_ip = ti.assetIp
+        LEFT JOIN bigdata_web.t_ailpha_network_segment e ON e.relation_type='SECURITY_ZONE' AND ti.assetIpNum BETWEEN e.first_ip AND e.last_ip
+        LEFT JOIN bigdata_web.t_ailpha_security_zone f ON e.relation_id = f.id
+        LEFT JOIN bigdata_web.t_vulnerability_info tf on ts.cve = tf.cve_code
+        WHERE
+        ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        AND ts.chart_id = #{chartId}
+        <if test="assetName != null and assetName != ''">
+            AND ti.assetName LIKE '%' || #{assetName} || '%'
+        </if>
+        <if test="assetIp != null and assetIp != ''">
+            AND ts.asset_ip LIKE '%' || #{assetIp} || '%'
+        </if>
+        <if test="assetType != null and assetType != ''">
+            AND ti.assetType = #{assetType}
+        </if>
+        <if test="assetTags != null and assetTags != ''">
+            AND ti.assetTags LIKE '%' || #{assetTags} || '%'
+        </if>
+        <if test="source != null and source != ''">
+            AND ti.source = #{source}
+        </if>
+        <if test="appProtocol != null and  appProtocol.size() > 0">
+            AND ts.app_protocol IN
+            <foreach collection="appProtocol" separator="," open="(" close=")"  index="index" item="appPcl">
+                #{appPcl}
+            </foreach>
+        </if>
+        <if test="vulnerabilityName != null and vulnerabilityName != ''">
+            AND tf.vulnerability_name LIKE '%' || #{vulnerabilityName} || '%'
+        </if>
+        GROUP BY ts.asset_ip,ti.assetType,ti.assetName,f."name"
+        ORDER BY
+        <choose>
+            <when test="order != null and order != ''">
+                ${order}
+            </when>
+            <otherwise>
+                endTime desc
+            </otherwise>
+        </choose>
+        ) a
+        <if test="alarmResultsVal != null and  alarmResultsVal.size() > 0">
+            WHERE a.alarmResults IN
+            <foreach collection="alarmResultsVal" separator="," open="(" close=")"  index="index" item="almRst">
+                #{almRst}
+            </foreach>
+        </if>
+    </select>
+
+
+    <select id="queryList" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT * FROM (
+        SELECT
+        TO_CHAR(MAX( ts.end_time ),'YYYY-MM-DD HH24:MI:SS') as endTime,
+        TO_CHAR(MIN( ts.start_time ),'YYYY-MM-DD HH24:MI:SS') as startTime,
+        ts.asset_ip as assetIp,
+        ti.assetType,
+        count( 1 ) AS aggCount,
+        MAX( ts.alarm_result ) AS alarmResults ,
+        ti.assetName,
+        COALESCE(ts.dest_security_zone,CASE WHEN f."name" IS NULL THEN '' ELSE 'zone_name:' || f."name" END) AS destSecurityZone
+        FROM
+        t_vul_analysis_sub ts
+        LEFT JOIN bigdata_web.t_asset_info ti on ts.asset_ip = ti.assetIp
+        LEFT JOIN bigdata_web.t_ailpha_network_segment e ON e.relation_type='SECURITY_ZONE' AND ti.assetIpNum BETWEEN e.first_ip AND e.last_ip
+        LEFT JOIN bigdata_web.t_ailpha_security_zone f ON e.relation_id = f.id
+        LEFT JOIN bigdata_web.t_vulnerability_info tf on ts.cve = tf.cve_code
+        WHERE
+        ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        AND ts.chart_id = #{chartId}
+        <if test="assetName != null and assetName != ''">
+            AND ti.assetName LIKE '%' || #{assetName} || '%'
+        </if>
+        <if test="assetIp != null and assetIp != ''">
+            AND ts.asset_ip LIKE '%' || #{assetIp} || '%'
+        </if>
+        <if test="assetType != null and assetType != ''">
+            AND ti.assetType = #{assetType}
+        </if>
+        <if test="assetTags != null and assetTags != ''">
+            AND ti.assetTags LIKE '%' || #{assetTags} || '%'
+        </if>
+        <if test="source != null and source != ''">
+            AND ti.source = #{source}
+        </if>
+        <if test="appProtocol != null and  appProtocol.size() > 0">
+            AND ts.app_protocol IN
+            <foreach collection="appProtocol" separator="," open="(" close=")"  index="index" item="appPcl">
+                #{appPcl}
+            </foreach>
+        </if>
+        <if test="vulnerabilityName != null and vulnerabilityName != ''">
+            AND tf.vulnerability_name LIKE '%' || #{vulnerabilityName} || '%'
+        </if>
+        GROUP BY ts.asset_ip,ti.assetType,ti.assetName,ts.dest_security_zone,f."name"
+       ) a
+        <if test="alarmResultsVal != null and  alarmResultsVal.size() > 0">
+            WHERE a.alarmResults IN
+            <foreach collection="alarmResultsVal" separator="," open="(" close=")"  index="index" item="almRst">
+                #{almRst}
+            </foreach>
+        </if>
+        ORDER BY
+        <choose>
+            <when test="order != null and order != ''">
+               ${order}
+            </when>
+            <otherwise>
+                endTime desc
+            </otherwise>
+        </choose>
+        LIMIT ${size} OFFSET ${page}
+    </select>
+
+
+    <select id="querySubListCount" parameterType="java.util.Map" resultType="java.lang.Long">
+        SELECT count(1) FROM (
+        SELECT
+        TO_CHAR( ts.end_time, 'YYYY-MM-DD HH24:MI:SS' ) AS endTime,
+        TO_CHAR( ts.start_time, 'YYYY-MM-DD HH24:MI:SS' ) AS startTime,
+        ti.assetName,
+        ts.asset_ip AS assetIp,
+        COALESCE(f."name",'未分配') as destSecurityZone,
+        ti.assetType,
+        agg_count AS aggCount,
+        ts.alarm_result AS alarmResults,
+        ts.cve,
+        tf.vulnerability_name AS vulnerabilityName,
+        ts.app_protocol AS appProtocol,
+        ts.clear_text AS clearText,
+        ts.request_url AS requestUrl,
+        tf.severity_level AS severityLevel,
+        tf.class_type AS classType,
+        ts.src_user_name AS srcUserName,
+        ts.passwd
+        FROM
+        t_vul_analysis_sub ts
+        LEFT JOIN bigdata_web.t_asset_info ti ON ts.asset_ip = ti.assetIp
+        LEFT JOIN bigdata_web.t_ailpha_network_segment e ON e.relation_type = 'SECURITY_ZONE'
+        AND ti.assetIpNum BETWEEN e.first_ip
+        AND e.last_ip
+        LEFT JOIN bigdata_web.t_ailpha_security_zone f ON e.relation_id = f.id
+        LEFT JOIN bigdata_web.t_vulnerability_info tf ON ts.cve = tf.cve_code
+        WHERE
+        ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        AND ts.chart_id = #{chartId}
+        <if test="assetName != null and assetName != ''">
+            AND ti.assetName LIKE '%' || #{assetName} || '%'
+        </if>
+        <if test="assetIp != null and assetIp != ''">
+            AND ts.asset_ip LIKE '%' || #{assetIp} || '%'
+        </if>
+        <if test="assetType != null and assetType != ''">
+            AND ti.assetType = #{assetType}
+        </if>
+        <if test="assetTags != null and assetTags != ''">
+            AND ti.assetTags LIKE '%' || #{assetTags} || '%'
+        </if>
+        <if test="source != null and source != ''">
+            AND ti.source = #{source}
+        </if>
+        <if test="appProtocol != null and  appProtocol.size() > 0">
+            AND ts.app_protocol IN
+            <foreach collection="appProtocol" separator="," open="(" close=")"  index="index" item="appPcl">
+                #{appPcl}
+            </foreach>
+        </if>
+        <if test="vulnerabilityName != null and vulnerabilityName != ''">
+            AND tf.vulnerability_name LIKE '%' || #{vulnerabilityName} || '%'
+        </if>
+       ) a
+        <if test="alarmResultsVal != null and  alarmResultsVal.size() > 0">
+            WHERE a.alarmResults IN
+            <foreach collection="alarmResultsVal" separator="," open="(" close=")"  index="index" item="almRst">
+                #{almRst}
+            </foreach>
+        </if>
+        ORDER BY
+        <choose>
+            <when test="order != null and order != ''">
+                ${order}
+            </when>
+            <otherwise>
+                endTime desc
+            </otherwise>
+        </choose>
+
+    </select>
+
+    <select id="querySubListCveCount" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT DISTINCT assetIp,count(assetIp) as cveCount FROM
+        (
+        SELECT
+        DISTINCT ts.asset_ip AS assetIp,
+        ts.cve, MAX( ts.alarm_result ) AS alarmResults
+        FROM
+        t_vul_analysis_sub ts
+        LEFT JOIN bigdata_web.t_asset_info ti ON ts.asset_ip = ti.assetIp
+        LEFT JOIN bigdata_web.t_ailpha_network_segment e ON e.relation_type = 'SECURITY_ZONE'
+        AND ti.assetIpNum BETWEEN e.first_ip
+        AND e.last_ip
+        LEFT JOIN bigdata_web.t_ailpha_security_zone f ON e.relation_id = f.id
+        LEFT JOIN bigdata_web.t_vulnerability_info tf ON ts.cve = tf.cve_code
+        WHERE
+        ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        AND ts.chart_id = #{chartId}
+        <if test="assetName != null and assetName != ''">
+            AND ti.assetName LIKE '%' || #{assetName} || '%'
+        </if>
+        <if test="assetIp != null and  assetIp.size() > 0">
+            AND ts.asset_ip IN
+            <foreach collection="assetIp" separator="," open="(" close=")"  index="index" item="ip">
+                #{ip}
+            </foreach>
+        </if>
+        <if test="assetType != null and assetType != ''">
+            AND ti.assetType = #{assetType}
+        </if>
+        <if test="assetTags != null and assetTags != ''">
+            AND ti.assetTags LIKE '%' || #{assetTags} || '%'
+        </if>
+        <if test="source != null and source != ''">
+            AND ti.source = #{source}
+        </if>
+        <if test="appProtocol != null and  appProtocol.size() > 0">
+            AND ts.app_protocol IN
+            <foreach collection="appProtocol" separator="," open="(" close=")"  index="index" item="appPcl">
+                #{appPcl}
+            </foreach>
+        </if>
+        <if test="assetIps != null and  assetIps.size() > 0">
+            AND ts.asset_ip IN
+            <foreach collection="assetIps" separator="," open="(" close=")"  index="index" item="assIp">
+                #{assIp}
+            </foreach>
+        </if>
+        <if test="vulnerabilityName != null and vulnerabilityName != ''">
+            AND tf.vulnerability_name LIKE '%' || #{vulnerabilityName} || '%'
+        </if>
+        GROUP BY
+        ts.asset_ip,ts.cve) c
+        <if test="alarmResultsVal != null and  alarmResultsVal.size() > 0">
+            WHERE c.alarmResults IN
+            <foreach collection="alarmResultsVal" separator="," open="(" close=")"  index="index" item="almRst">
+                #{almRst}
+            </foreach>
+        </if>
+        GROUP BY assetIp
+    </select>
+
+    <select id="querySubList" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT * FROM (
+        SELECT
+        TO_CHAR( ts.end_time, 'YYYY-MM-DD HH24:MI:SS' ) AS endTime,
+        TO_CHAR( ts.start_time, 'YYYY-MM-DD HH24:MI:SS' ) AS startTime,
+        ti.assetName,
+        ts.asset_ip AS assetIp,
+        COALESCE(ts.dest_security_zone,CASE WHEN f."name" IS NULL THEN '' ELSE 'zone_name:' || f."name" END) AS destSecurityZone,
+        ti.assetType,
+        agg_count AS aggCount,
+        ts.alarm_result AS alarmResults,
+        ts.cve,
+        tf.vulnerability_name AS vulnerabilityName,
+        ts.app_protocol AS appProtocol,
+        ts.clear_text AS clearText,
+        ts.request_url AS requestUrl,
+        tf.severity_level AS severityLevel,
+        tf.class_type AS classType,
+        ts.src_user_name AS srcUserName,
+        ts.passwd
+        FROM
+        t_vul_analysis_sub ts
+        LEFT JOIN bigdata_web.t_asset_info ti ON ts.asset_ip = ti.assetIp
+        LEFT JOIN bigdata_web.t_ailpha_network_segment e ON e.relation_type = 'SECURITY_ZONE'
+        AND ti.assetIpNum BETWEEN e.first_ip
+        AND e.last_ip
+        LEFT JOIN bigdata_web.t_ailpha_security_zone f ON e.relation_id = f.id
+        LEFT JOIN bigdata_web.t_vulnerability_info tf ON ts.cve = tf.cve_code
+        WHERE
+        ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        AND ts.chart_id = #{chartId}
+        <if test="assetName != null and assetName != ''">
+            AND ti.assetName LIKE '%' || #{assetName} || '%'
+        </if>
+        <if test="assetIp != null and assetIp != ''">
+            AND ts.asset_ip LIKE '%' || #{assetIp} || '%'
+        </if>
+        <if test="assetType != null and assetType != ''">
+            AND ti.assetType = #{assetType}
+        </if>
+        <if test="assetTags != null and assetTags != ''">
+            AND ti.assetTags LIKE '%' || #{assetTags} || '%'
+        </if>
+        <if test="source != null and source != ''">
+            AND ti.source = #{source}
+        </if>
+        <if test="appProtocol != null and  appProtocol.size() > 0">
+            AND ts.app_protocol IN
+            <foreach collection="appProtocol" separator="," open="(" close=")"  index="index" item="appPcl">
+                #{appPcl}
+            </foreach>
+        </if>
+        <if test="assetIps != null and  assetIps.size() > 0">
+            AND ts.asset_ip IN
+            <foreach collection="assetIps" separator="," open="(" close=")"  index="index" item="assIp">
+                #{assIp}
+            </foreach>
+        </if>
+        <if test="vulnerabilityName != null and vulnerabilityName != ''">
+            AND tf.vulnerability_name LIKE '%' || #{vulnerabilityName} || '%'
+        </if>
+       ) a
+        <if test="alarmResultsVal != null and  alarmResultsVal.size() > 0">
+            WHERE a.alarmResults IN
+            <foreach collection="alarmResultsVal" separator="," open="(" close=")"  index="index" item="almRst">
+                #{almRst}
+            </foreach>
+        </if>
+        ORDER BY
+        <choose>
+            <when test="order != null and order != ''">
+                ${order}
+            </when>
+            <otherwise>
+                endTime desc
+            </otherwise>
+        </choose>
+        LIMIT ${size} OFFSET ${page}
+    </select>
+
+
+    <select id="querySubListById" parameterType="java.util.List" resultType="java.util.Map">
+        SELECT
+        TO_CHAR( ts.end_time, 'YYYY-MM-DD HH24:MI:SS' ) AS endTime,
+        TO_CHAR( ts.start_time, 'YYYY-MM-DD HH24:MI:SS' ) AS startTime,
+        ti.assetName,
+        ts.asset_ip AS assetIp,
+        COALESCE(f."name",'未分配') as destSecurityZone,
+        ti.assetType,
+        agg_count AS aggCount,
+        ts.alarm_status AS alarmStatus,
+        ts.alarm_result AS alarmResults,
+        ts.cve,
+        tf.vulnerability_name AS vulnerabilityName,
+        ts.app_protocol AS appProtocol,
+        ts.clear_text AS clearText,
+        ts.request_url AS requestUrl,
+        tf.severity_level AS severityLevel,
+        tf.class_type AS classType,
+        ts.src_user_name AS srcUserName,
+        ts.passwd
+        FROM
+        t_vul_analysis_sub ts
+        LEFT JOIN bigdata_web.t_asset_info ti ON ts.asset_ip = ti.assetIp
+        LEFT JOIN bigdata_web.t_ailpha_network_segment e ON e.relation_type = 'SECURITY_ZONE'
+        AND ti.assetIpNum BETWEEN e.first_ip
+        AND e.last_ip
+        LEFT JOIN bigdata_web.t_ailpha_security_zone f ON e.relation_id = f.id
+        LEFT JOIN bigdata_web.t_vulnerability_info tf ON ts.cve = tf.cve_code
+        WHERE
+        ts.id  IN
+        <foreach collection="list" index="index" item="id" open="(" close=")" separator=",">
+            #{id,jdbcType=VARCHAR}
+        </foreach>
+    </select>
+
+    <update id="updateByParams" parameterType="java.util.Map">
+        UPDATE
+        t_vul_analysis_sub
+        SET
+        alarm_status = ${alarmStatus}
+        WHERE
+        id IN (
+        SELECT ts.id
+        from
+        t_vul_analysis_sub ts
+        LEFT JOIN bigdata_web.t_asset_info ti ON ts.asset_ip = ti.assetIp
+        LEFT JOIN bigdata_web.t_ailpha_network_segment e ON e.relation_type = 'SECURITY_ZONE'
+        AND ti.assetIpNum BETWEEN e.first_ip
+        AND e.last_ip
+        LEFT JOIN bigdata_web.t_ailpha_security_zone f ON e.relation_id = f.id
+        LEFT JOIN bigdata_web.t_vulnerability_info tf ON ts.cve = tf.cve_code
+        WHERE
+        ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        AND ts.chart_id = #{chartId}
+        <if test="assetName != null and assetName != ''">
+            AND ti.assetName LIKE '%' || #{assetName} || '%'
+        </if>
+        <if test="assetIp != null and assetIp != ''">
+            AND ts.asset_ip LIKE '%' || #{assetIp} || '%'
+        </if>
+        <if test="assetType != null and assetType != ''">
+            AND ti.assetType = #{assetType}
+        </if>
+        <if test="assetTags != null and assetTags != ''">
+            AND ti.assetTags LIKE '%' || #{assetTags} || '%'
+        </if>
+        <if test="source != null and source != ''">
+            AND ti.source = #{source}
+        </if>
+        <if test="appProtocol != null and appProtocol.size() > 0">
+            AND ts.app_protocol IN
+            <foreach collection="appProtocol" separator="," open="(" close=")" index="index" item="appPcl">
+                #{appPcl}
+            </foreach>
+        </if>
+        <if test="assetIps != null and assetIps.size() > 0">
+            AND ts.asset_ip IN
+            <foreach collection="assetIps" separator="," open="(" close=")" index="index" item="ips">
+                #{ips}
+            </foreach>
+        </if>
+        <if test="vulnerabilityName != null and vulnerabilityName != ''">
+            AND tf.vulnerability_name LIKE '%' || #{vulnerabilityName} || '%'
+        </if>
+        )
+    </update>
+
+
+    <update id="updateByIds">
+        UPDATE
+        t_vul_analysis_sub ts
+        SET
+        ts.alarm_status = #{status,jdbcType=INTEGER}
+        WHERE
+        ts.id  IN
+        <foreach collection="id" index="index" item="id" open="(" close=")" separator=",">
+            #{id,jdbcType=VARCHAR}
+        </foreach>
+    </update>
+
+
+    <select id="queryTop10" parameterType="java.util.Map" resultType="java.util.Map">
+    SELECT * FROM
+    (
+        SELECT
+        ts.asset_ip as assetIp,
+        sum( ts.agg_count ) AS "count",
+        sum( ts.high ) AS High,
+        sum( ts."medium" ) AS "Medium",
+        sum( ts.low ) AS Low,
+        MAX( ts.alarm_result ) AS alarmResults
+        FROM
+        t_vul_analysis_sub ts
+        LEFT JOIN bigdata_web.t_asset_info ti ON ts.asset_ip = ti.assetIp
+        LEFT JOIN bigdata_web.t_ailpha_network_segment e ON e.relation_type = 'SECURITY_ZONE'
+        AND ti.assetIpNum BETWEEN e.first_ip
+        AND e.last_ip
+        LEFT JOIN bigdata_web.t_ailpha_security_zone f ON e.relation_id = f.id
+        LEFT JOIN bigdata_web.t_vulnerability_info tf ON ts.cve = tf.cve_code
+        WHERE
+        ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        AND ts.chart_id = #{chartId}
+        <if test="assetName != null and assetName != ''">
+            AND ti.assetName LIKE '%' || #{assetName} || '%'
+        </if>
+        <if test="assetIp != null and assetIp != ''">
+            AND ts.asset_ip LIKE '%' || #{assetIp} || '%'
+        </if>
+        <if test="assetType != null and assetType != ''">
+            AND ti.assetType = #{assetType}
+        </if>
+        <if test="assetTags != null and assetTags != ''">
+            AND ti.assetTags LIKE '%' || #{assetTags} || '%'
+        </if>
+        <if test="source != null and source != ''">
+            AND ti.source = #{source}
+        </if>
+        <if test="appProtocol != null and  appProtocol.size() > 0">
+            AND ts.app_protocol IN
+            <foreach collection="appProtocol" separator="," open="(" close=")"  index="index" item="appPcl">
+                #{appPcl}
+            </foreach>
+        </if>
+        <if test="vulnerabilityName != null and vulnerabilityName != ''">
+            AND tf.vulnerability_name LIKE '%' || #{vulnerabilityName} || '%'
+        </if>
+        GROUP BY
+        ts.asset_ip
+      ) a
+        <if test="alarmResultsVal != null and  alarmResultsVal.size() > 0">
+            WHERE a.alarmResults IN
+            <foreach collection="alarmResultsVal" separator="," open="(" close=")"  index="index" item="almRst">
+                #{almRst}
+            </foreach>
+        </if>
+        ORDER BY "count" desc
+    LIMIT 10
+    </select>
+
+
+    <select id="queryProportion" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT  * FROM
+        (
+        SELECT
+        tf.vulnerability_name as vulnerabilityName,
+        sum( ts.agg_count ) AS "count",
+        MAX( ts.alarm_result ) AS alarmResults
+        FROM
+        t_vul_analysis_sub ts
+        LEFT JOIN bigdata_web.t_asset_info ti ON ts.asset_ip = ti.assetIp
+        LEFT JOIN bigdata_web.t_ailpha_network_segment e ON e.relation_type = 'SECURITY_ZONE'
+        AND ti.assetIpNum BETWEEN e.first_ip
+        AND e.last_ip
+        LEFT JOIN bigdata_web.t_ailpha_security_zone f ON e.relation_id = f.id
+        LEFT JOIN bigdata_web.t_vulnerability_info tf ON ts.cve = tf.cve_code
+        WHERE
+        ts.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
+        AND ts.chart_id = #{chartId}
+        AND tf.vulnerability_name is not null
+        <if test="assetName != null and assetName != ''">
+            AND ti.assetName LIKE '%' || #{assetName} || '%'
+        </if>
+        <if test="assetIp != null and assetIp != ''">
+            AND ts.asset_ip LIKE '%' || #{assetIp} || '%'
+        </if>
+        <if test="assetType != null and assetType != ''">
+            AND ti.assetType = #{assetType}
+        </if>
+        <if test="assetTags != null and assetTags != ''">
+            AND ti.assetTags LIKE '%' || #{assetTags} || '%'
+        </if>
+        <if test="source != null and source != ''">
+            AND ti.source = #{source}
+        </if>
+        <if test="appProtocol != null and appProtocol.size() > 0">
+            AND ts.app_protocol IN
+            <foreach collection="appProtocol" separator="," open="(" close=")" index="index" item="appPcl">
+                #{appPcl}
+            </foreach>
+        </if>
+        <if test="vulnerabilityName != null and vulnerabilityName != ''">
+            AND tf.vulnerability_name LIKE '%' || #{assetName} || '%'
+        </if>
+        GROUP BY
+        tf.vulnerability_name) a
+        <if test="alarmResultsVal != null and  alarmResultsVal.size() > 0">
+            WHERE a.alarmResults IN
+            <foreach collection="alarmResultsVal" separator="," open="(" close=")"  index="index" item="almRst">
+                #{almRst}
+            </foreach>
+        </if>
+        ORDER BY "count" desc
+    </select>
+</mapper>

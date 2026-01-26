@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    自动转换说明：
+    - 原文件: AlarmStatusTimingTaskMapper.xml
+    - 转换时间: 2026-01-19 11:04:29
+    - MySQL → PostgreSQL 16.x
+    
+    注意事项：
+    1. ON CONFLICT子句可能需要手动指定冲突列
+    2. LIKE已保留，如需不区分大小写请改为ILIKE
+    3. 建议人工review后再部署到生产环境
+-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.AlarmStatusTimingTaskMapper">
+
+    <insert id="insertOrUpdate" parameterType="com.dbapp.extension.xdr.threatMonitor.entity.AlarmStatusTimingTask">
+        INSERT INTO t_alarm_status_timing_task (task_type,alarm_status,remarks,operator,condition,create_time,task_end_time,associated_field)
+        values (#{task.taskType,jdbcType=VARCHAR},#{task.alarmStatus,jdbcType=VARCHAR},#{task.remarks,jdbcType=VARCHAR},#{task.operator,jdbcType=VARCHAR},#{task.condition,jdbcType=VARCHAR},
+        CAST(#{task.createTime} AS timestamp),CAST(#{task.taskEndTime} AS timestamp),#{task.associatedField,jdbcType=VARCHAR})
+        ON CONFLICT DO UPDATE SET task_type = EXCLUDED.task_type ,alarm_status = EXCLUDED.alarm_status,remarks = EXCLUDED.remarks ,operator = EXCLUDED.operator, condition = EXCLUDED.condition
+    </insert>
+</mapper>

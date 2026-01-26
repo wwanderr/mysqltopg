@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    自动转换说明：
+    - 原文件: VirusKillHistoryMapper.xml
+    - 转换时间: 2026-01-19 11:04:29
+    - MySQL → PostgreSQL 16.x
+    
+    注意事项：
+    1. ON CONFLICT子句可能需要手动指定冲突列
+    2. LIKE已保留，如需不区分大小写请改为ILIKE
+    3. 建议人工review后再部署到生产环境
+-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/dtd">
+<mapper namespace="com.dbapp.extension.xdr.linkageHandle.mapper.VirusKillHistoryMapper">
+
+    <insert id="batchInsert">
+        INSERT into t_virus_kill_history (
+        strategy_id,
+        strategy_name,
+        node_ip,
+        node_id,
+        os_str,
+        device_ip,
+        device_id,
+        device_type,
+        action,
+        hashes,
+        source
+        )
+        VALUES
+        <foreach collection="list" item="item" index="index" close="" open="" separator=",">
+            (
+            #{item.strategyId},
+            #{item.strategyName},
+            #{item.nodeIp},
+            #{item.nodeId},
+            #{item.osStr},
+            #{item.deviceIp},
+            #{item.deviceId},
+            #{item.deviceType},
+            #{item.action},
+            #{item.hashes},
+            #{item.source}
+            )
+        </foreach>
+    </insert>
+    <select id="countLaunchTimesByStrategyId" resultType="com.dbapp.extension.xdr.linkageHandle.entity.BaseHistoryVO">
+        SELECT strategy_id, SUM(1) AS count
+        FROM t_virus_kill_history
+        WHERE strategy_id IN
+        <foreach collection='strategyIds' item='strategyId' open='(' close=')' index='index' separator=','>
+            #{strategyId}
+        </foreach>
+        GROUP BY strategy_id;
+    </select>
+</mapper>

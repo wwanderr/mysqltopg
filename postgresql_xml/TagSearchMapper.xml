@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    自动转换说明：
+    - 原文件: TagSearchMapper.xml
+    - 转换时间: 2026-01-19 11:04:29
+    - MySQL → PostgreSQL 16.x
+    
+    注意事项：
+    1. ON CONFLICT子句可能需要手动指定冲突列
+    2. LIKE已保留，如需不区分大小写请改为ILIKE
+    3. 建议人工review后再部署到生产环境
+-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.TagSearchMapper">
+
+    <update id="truncateTable">
+         truncate table t_tag_search_list
+    </update>
+
+    <insert id="batchInsert" useGeneratedKeys="true" >
+        INSERT INTO t_tag_search_list (tag_search,name,update_time)
+        VALUES
+        <foreach collection="tags"  separator="," item="tag">
+           ( #{tag.tagSearch,jdbcType=VARCHAR},#{tag.name,jdbcType=VARCHAR},CAST(#{tag.updateTime} AS timestamp))
+        </foreach>
+    </insert>
+</mapper>

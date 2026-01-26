@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    自动转换说明：
+    - 原文件: AttackKnowledgeMapper.xml
+    - 转换时间: 2026-01-19 11:04:29
+    - MySQL → PostgreSQL 16.x
+    
+    注意事项：
+    1. ON CONFLICT子句可能需要手动指定冲突列
+    2. LIKE已保留，如需不区分大小写请改为ILIKE
+    3. 建议人工review后再部署到生产环境
+-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.AttackKnowledgeMapper">
+
+
+    <resultMap id="baseResultMap" type="com.dbapp.extension.xdr.threatMonitor.entity.AttackKnowledge">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result column="os" property="os" jdbcType="VARCHAR"/>
+        <result column="device_type" property="deviceType" jdbcType="VARCHAR"/>
+        <result column="perspective" property="perspective" jdbcType="VARCHAR"/>
+        <result column="parent_code" property="parentCode" jdbcType="VARCHAR"/>
+        <result column="technique_code" property="techniqueCode" jdbcType="VARCHAR"/>
+        <result column="technique_name" property="techniqueName" jdbcType="VARCHAR"/>
+        <result column="technique_name_ch" property="techniqueNameCh" jdbcType="VARCHAR"/>
+        <result column="level" property="level" jdbcType="VARCHAR"/>
+        <result column="sort" property="sort" jdbcType="INTEGER"/>
+    </resultMap>
+    <select id="selectListByParams" resultMap="baseResultMap">
+        SELECT
+        CASE
+        WHEN
+        <trim prefix="" prefixOverrides="AND">
+       tk.os like '%' || #{os} || '%'
+       AND tk.perspective like '%' || #{perspective} || '%'
+       AND tk.device_type like '%' || #{type} || '%'
+       </trim>
+         THEN
+        "blue" ELSE "white"
+        END AS color,
+        tk.id,
+        tk.technique_code,
+        tk.technique_name,
+        tk.technique_name_ch,
+        tk.device_type,
+        tk.os,
+        tk.perspective,
+        tk.parent_code,
+        tk.level,
+        tk.sort
+    FROM
+        t_attack_knowledge tk
+    <where>
+        <if test="os != null and os != ''">
+             tk.os like '%' || #{os} || '%'
+        </if>
+        <if test="perspective != null and perspective != ''">
+            <if test="perspective == 'all'">
+                OR 1 = 1
+            </if>
+            <if test="perspective != 'all'">
+                OR tk.perspective like '%' || #{perspective} || '%'
+            </if>
+        </if>
+        <if test="type != null and type != ''">
+            OR tk.device_type like '%' || #{type} || '%'
+        </if>
+    </where>
+    </select>
+
+    <select id="selectByparentCode" resultMap="baseResultMap">
+    SELECT
+         tk.id,
+        tk.technique_code,
+        tk.technique_name,
+        tk.technique_name_ch,
+        tk.device_type,
+        tk.os,
+        tk.perspective,
+        tk.parent_code,
+        tk.level,
+        tk.sort
+    FROM
+        t_attack_knowledge tk
+    WHERE tk.technique_code = #{key,jdbcType=VARCHAR}
+    </select>
+
+    <select id="queryIdBytacticName" resultType="java.lang.String" parameterType="java.lang.String">
+    SELECT
+        tk.technique_code
+    FROM
+        t_attack_knowledge tk
+    WHERE tk.technique_name  = #{tacticName,jdbcType=VARCHAR}
+    LIMIT 1
+    </select>
+
+
+    <select id="queryNameByCode" resultType="java.lang.String" parameterType="java.lang.String">
+        SELECT
+        tk.technique_name
+        FROM
+        t_attack_knowledge tk
+        WHERE tk.technique_code = #{tacticCode,jdbcType=VARCHAR}
+        LIMIT 1
+    </select>
+
+    <select id="queryParentId" resultType="java.lang.String">
+        SELECT
+        tk.parent_code
+        FROM
+        t_attack_knowledge tk
+        WHERE tk.technique_code = #{techniquesId,jdbcType=VARCHAR}
+        LIMIT 1
+    </select>
+
+    <select id="selectTactic" resultType="java.lang.String">
+        SELECT
+        DISTINCT tk.technique_code
+        FROM
+        t_attack_knowledge tk
+        WHERE
+        tk.level = 'tactic'
+    </select>
+
+    <update id="updateByCode" parameterType="Map">
+        UPDATE t_attack_knowledge SET
+        os = #{os},perspective = #{perspective},device_type = #{deviceType}
+        WHERE technique_code = #{techniqueCode}
+    </update>
+
+    <select id="truncateTable">
+        truncate table t_attack_knowledge
+    </select>
+
+    <insert id="batchInsert">
+     INSERT INTO  t_attack_knowledge  ( technique_code, technique_name, technique_name_ch, parent_code, level, os, perspective, device_type, sort )
+    VALUES
+	<foreach collection="attackUpdateList" index="index" item="attck" separator=",">
+        (
+         #{attck.techniqueCode,jdbcType=VARCHAR},#{attck.techniqueName,jdbcType=VARCHAR},#{attck.techniqueNameCh,jdbcType=VARCHAR},#{attck.parentCode,jdbcType=VARCHAR},
+        #{attck.level,jdbcType=VARCHAR},#{attck.os,jdbcType=VARCHAR},#{attck.perspective,jdbcType=VARCHAR},#{attck.deviceType,jdbcType=VARCHAR},#{attck.sort,jdbcType=INTEGER}
+        )
+    </foreach>
+    </insert>
+</mapper>

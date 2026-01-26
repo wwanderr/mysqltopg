@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.linkageHandle.mapper.ScanHistoryMapper">
+
+    <resultMap id="scanHistoryResultMap" type="com.dbapp.extension.xdr.linkageHandle.entity.ScanHistory">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="node_ip" property="nodeIp" jdbcType="VARCHAR"/>
+        <result column="node_id" property="nodeId" jdbcType="VARCHAR"/>
+        <result column="node_os" property="nodeOs" jdbcType="VARCHAR"/>
+        <result column="device_id" property="deviceId" jdbcType="VARCHAR"/>
+        <result column="device_ip" property="deviceIp" jdbcType="VARCHAR"/>
+        <result column="device_type" property="deviceType" jdbcType="VARCHAR"/>
+        <result column="last_scan_time" property="lastScanTime" jdbcType="TIMESTAMP"/>
+        <result column="scan_times" property="scanTimes" jdbcType="INTEGER"/>
+        <result column="virus_status" property="virusStatus" jdbcType="VARCHAR" javaType="com.dbapp.extension.xdr.linkageHandle.entity.ScanHistory$StatusEnum" typeHandler="com.dbapp.extension.xdr.linkageHandle.entity.ScanHistory$StatusEnumTypeHandler"/>
+        <result column="site_status" property="siteStatus" jdbcType="VARCHAR" javaType="com.dbapp.extension.xdr.linkageHandle.entity.ScanHistory$StatusEnum" typeHandler="com.dbapp.extension.xdr.linkageHandle.entity.ScanHistory$StatusEnumTypeHandler"/>
+        <result column="vulnerability_status" property="vulnerabilityStatus" jdbcType="VARCHAR" javaType="com.dbapp.extension.xdr.linkageHandle.entity.ScanHistory$StatusEnum" typeHandler="com.dbapp.extension.xdr.linkageHandle.entity.ScanHistory$StatusEnumTypeHandler"/>
+        <result column="virus_result_num" property="virusResultNum" jdbcType="INTEGER"/>
+        <result column="site_result_num" property="siteResultNum" jdbcType="INTEGER"/>
+        <result column="vulnerability_result_num" property="vulnerabilityResultNum" jdbcType="INTEGER"/>
+        <result column="total_result_num" property="totalResultNum" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <insert id="upsertBatch">
+        INSERT into t_scan_history (
+        node_ip,
+        node_id,
+        node_os,
+        device_id,
+        device_ip,
+        device_type,
+        last_scan_time
+        <if test="scanType.scanType.equals('virus')">
+            ,virus_status
+        </if>
+        <if test="scanType.scanType.equals('site')">
+            ,site_status
+        </if>
+        <if test="scanType.scanType.equals('vulnerability')">
+            ,vulnerability_status
+        </if>)
+        VALUES
+        <foreach collection="scanHistories" item="scanHistory" index="index" close="" open="" separator=",">
+            (
+            #{scanHistory.nodeIp},
+            #{scanHistory.nodeId},
+            #{scanHistory.nodeOs},
+            #{scanHistory.deviceId},
+            #{scanHistory.deviceIp},
+            #{scanHistory.deviceType},
+            CAST(#{scanHistory.lastScanTime} AS timestamp)
+            <if test="scanType.scanType.equals('virus')">
+                ,#{scanHistory.virusStatus.status}
+            </if>
+            <if test="scanType.scanType.equals('site')">
+                ,#{scanHistory.siteStatus.status}
+            </if>
+            <if test="scanType.scanType.equals('vulnerability')">
+                ,#{scanHistory.vulnerabilityStatus.status}
+            </if>)
+        </foreach>
+        ON CONFLICT (node_ip, device_id) DO UPDATE SET
+        node_id = EXCLUDED.node_id,
+        node_os = EXCLUDED.node_os,
+        device_id = EXCLUDED.device_id,
+        device_ip = EXCLUDED.device_ip,
+        device_type = EXCLUDED.device_type,
+        last_scan_time = EXCLUDED.last_scan_time,
+        scan_times = t_scan_history.scan_times + 1,
+        total_result_num = 0
+        <if test="scanType.scanType.equals('virus')">
+            ,virus_status = EXCLUDED.virus_status
+        </if>
+        <if test="scanType.scanType.equals('site')">
+            ,site_status = EXCLUDED.site_status
+        </if>
+        <if test="scanType.scanType.equals('vulnerability')">
+            ,vulnerability_status = EXCLUDED.vulnerability_status
+        </if>
+        <if test="scanType.scanType.equals('virus')">
+            ,virus_result_num = 0
+        </if>
+        <if test="scanType.scanType.equals('site')">
+            ,site_result_num = 0
+        </if>
+        <if test="scanType.scanType.equals('vulnerability')">
+            ,vulnerability_result_num = 0
+        </if>
+    </insert>
+</mapper>

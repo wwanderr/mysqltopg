@@ -1,0 +1,84 @@
+/*
+ * Table: t_alarm_status_timing_task
+ * Generated: 2026-01-22 13:36:59
+ * Source: sql
+ */
+
+-- ============================
+-- SEQUENCE DEFINITIONS
+-- ============================
+-- ----------------------------
+-- Sequence structure for t_alarm_status_timing_task_id_seq
+-- ----------------------------
+DROP SEQUENCE IF EXISTS "t_alarm_status_timing_task_id_seq" CASCADE;
+CREATE SEQUENCE "t_alarm_status_timing_task_id_seq" 
+INCREMENT 1
+MINVALUE  1
+MAXVALUE 9223372036854775807
+START 1
+CACHE 1;
+ALTER SEQUENCE "t_alarm_status_timing_task_id_seq" OWNER TO "dbapp";
+
+-- ============================
+-- TABLE DEFINITION
+-- ============================
+-- ----------------------------
+-- Table structure for t_alarm_status_timing_task
+-- ----------------------------
+DROP TABLE IF EXISTS "t_alarm_status_timing_task";
+CREATE TABLE "t_alarm_status_timing_task" (
+  "id" int8 NOT NULL DEFAULT nextval('t_alarm_status_timing_task_id_seq'::regclass),
+  "task_type" varchar(50) COLLATE "pg_catalog"."default",
+  "alarm_status" varchar(20) COLLATE "pg_catalog"."default",
+  "remarks" text COLLATE "pg_catalog"."default",
+  "operator" varchar(150) COLLATE "pg_catalog"."default",
+  "condition" text COLLATE "pg_catalog"."default",
+  "create_time" timestamp(6),
+  "task_end_time" timestamp(6),
+  "associated_field" varchar(100) COLLATE "pg_catalog"."default"
+)
+;
+ALTER TABLE "t_alarm_status_timing_task" OWNER TO "dbapp";
+COMMENT ON COLUMN "t_alarm_status_timing_task"."id" IS '主键自增id';
+COMMENT ON COLUMN "t_alarm_status_timing_task"."task_type" IS '任务类型（区分不同模块）';
+COMMENT ON COLUMN "t_alarm_status_timing_task"."alarm_status" IS '处置状态';
+COMMENT ON COLUMN "t_alarm_status_timing_task"."remarks" IS '备注';
+COMMENT ON COLUMN "t_alarm_status_timing_task"."operator" IS '责任人';
+COMMENT ON COLUMN "t_alarm_status_timing_task"."condition" IS '处置条件（以JSON格式存储）';
+COMMENT ON COLUMN "t_alarm_status_timing_task"."create_time" IS '创建时间';
+COMMENT ON COLUMN "t_alarm_status_timing_task"."task_end_time" IS '任务结束时间';
+COMMENT ON COLUMN "t_alarm_status_timing_task"."associated_field" IS '关联字段';
+
+-- ----------------------------
+-- Records of t_alarm_status_timing_task
+-- ----------------------------
+BEGIN;
+COMMIT;
+
+-- ============================
+-- SEQUENCE OWNERSHIP
+-- ============================
+-- ----------------------------
+-- Alter sequences owned by
+-- ----------------------------
+ALTER SEQUENCE "t_alarm_status_timing_task_id_seq"
+OWNED BY "t_alarm_status_timing_task"."id";
+SELECT setval('"t_alarm_status_timing_task_id_seq"', 1, true);
+
+-- ============================
+-- INDEXES
+-- ============================
+-- ----------------------------
+-- Indexes structure for table t_alarm_status_timing_task
+-- ----------------------------
+CREATE UNIQUE INDEX "idx_94463_uniqekey" ON "t_alarm_status_timing_task" USING btree (
+  "associated_field" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
+);
+
+-- ============================
+-- PRIMARY KEY
+-- ============================
+-- ----------------------------
+-- Primary Keys structure for table t_alarm_status_timing_task
+-- ----------------------------
+ALTER TABLE "t_alarm_status_timing_task" ADD CONSTRAINT "idx_94463_primary" PRIMARY KEY ("id");

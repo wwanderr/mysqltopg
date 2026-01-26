@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.extension.xdr.threatMonitor.mapper.ScenarioDataMapper">
+
+    <insert id="insertOrUpdate" parameterType="com.dbapp.extension.xdr.threatMonitor.entity.ScenarioData" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_event_scenario_data
+        ("result",log_session_id,incident_id,risk_id,scenario_id,update_time,focus_ip,target_ip,conclusion)
+        values
+        (#{result,jdbcType=VARCHAR},#{logSessionId,jdbcType=VARCHAR},#{incidentId,jdbcType=INTEGER},#{riskId,jdbcType=INTEGER},#{scenarioId,jdbcType=INTEGER},
+        CAST(#{updateTime} AS timestamp),#{focusIp,jdbcType=VARCHAR},#{targetIp,jdbcType=VARCHAR},#{conclusion,jdbcType=VARCHAR})
+        ON CONFLICT (log_session_id) DO UPDATE SET
+        update_time = EXCLUDED.update_time
+    </insert>
+
+</mapper>
