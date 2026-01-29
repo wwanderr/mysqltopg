@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/test/virus-kill-history")
+@RequestMapping("/test/virusKillHistory")
 public class VirusKillHistoryTestController {
     @Autowired
     private VirusKillHistoryMapper mapper;

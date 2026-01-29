@@ -1,0 +1,43 @@
+package com.test.controller;
+
+import com.dbapp.extension.xdr.threatMonitor.mapper.RiskIncidentHistoryMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import java.util.*;
+
+@RestController
+@RequestMapping("/test/riskIncidentHistory")
+public class RiskIncidentHistoryTestController {
+    @Autowired
+    private RiskIncidentHistoryMapper mapper;
+
+    @GetMapping("/getRiskHistoryList")
+    public String test01() { return "SUCCESS: " + mapper.getRiskHistoryList(new HashMap<>()).size(); }
+    
+    @GetMapping("/queryEventCount")
+    public String test02() { return "SUCCESS: " + mapper.queryEventCount(new HashMap<>()).size(); }
+    
+    @GetMapping("/getFocusObject")
+    public String test03() { return "SUCCESS: " + mapper.getFocusObject().size(); }
+    
+    @GetMapping("/FocusIpMessage")
+    public String test04() { return "SUCCESS: " + mapper.FocusIpMessage(Arrays.asList("192.168.1.1")).size(); }
+    
+    @GetMapping("/selectAllByIdList")
+    public String test05() { return "SUCCESS: " + mapper.selectAllByIdList(Arrays.asList(1, 2)).size(); }
+    
+    @GetMapping("/getCount")
+    public String test06() { return "SUCCESS: " + mapper.getCount(new HashMap<>()); }
+    
+    @GetMapping("/getFocusIpCount")
+    public String test07() { return "SUCCESS: " + mapper.getFocusIpCount(new HashMap<>()); }
+    
+    @GetMapping("/queryFocusIps")
+    public String test08() { return "SUCCESS: " + mapper.queryFocusIps(new HashMap<>()).size(); }
+    
+    @GetMapping("/queryFocusIpCount")
+    public String test09() { return "SUCCESS: " + mapper.queryFocusIpCount(new HashMap<>()); }
+    
+    @GetMapping("/countByDate")
+    public String test10() { return "SUCCESS: " + mapper.countByDate("2026-01-26"); }
+}

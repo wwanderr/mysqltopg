@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 
 @RestController
-@RequestMapping("/test/alarm-status-timing-task")
+@RequestMapping("/test/alarmStatusTimingTask")
 public class AlarmStatusTimingTaskTestController {
     @Autowired
     private AlarmStatusTimingTaskMapper mapper;

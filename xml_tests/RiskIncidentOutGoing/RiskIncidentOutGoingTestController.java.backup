@@ -1,0 +1,58 @@
+package com.test.controller;
+
+import com.dbapp.extension.xdr.threatMonitor.mapper.RiskIncidentOutGoingMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import java.util.*;
+
+@RestController
+@RequestMapping("/test/riskIncidentOutGoing")
+public class RiskIncidentOutGoingTestController {
+    @Autowired
+    private RiskIncidentOutGoingMapper mapper;
+
+    @GetMapping("/mappingFromClueSecurityEvent")
+    public String test01() { return "SUCCESS: " + mapper.mappingFromClueSecurityEvent(new HashMap<>()).size(); }
+    
+    @GetMapping("/mappingNormalSecurityEvent")
+    public String test02() { return "SUCCESS: " + mapper.mappingNormalSecurityEvent(new HashMap<>()).size(); }
+    
+    @GetMapping("/backUpLastTermData")
+    public String test03() { return "SUCCESS: " + mapper.backUpLastTermData(new HashMap<>()); }
+    
+    @GetMapping("/batchInsertOrUpdateIncident")
+    public String test04() { mapper.batchInsertOrUpdateIncident(new ArrayList<>()); return "SUCCESS"; }
+    
+    @GetMapping("/deleteOldIncident")
+    public String test05() { return "SUCCESS: " + mapper.deleteOldIncident(30); }
+    
+    @GetMapping("/queryListByTime")
+    public String test06() { return "SUCCESS: " + mapper.queryListByTime("2026-01-01", "2026-01-26").size(); }
+    
+    @GetMapping("/batchUpdatePayload")
+    public String test07() { mapper.batchUpdatePayload(new ArrayList<>()); return "SUCCESS"; }
+    
+    @GetMapping("/updateKillChain")
+    public String test08() { mapper.updateKillChain(1L, "T1001"); return "SUCCESS"; }
+    
+    @GetMapping("/clearHistoryData")
+    public String test09() { return "SUCCESS: " + mapper.clearHistoryData(30); }
+    
+    @GetMapping("/queryOutGoingList")
+    public String test10() { return "SUCCESS: " + mapper.queryOutGoingList(new HashMap<>()).size(); }
+    
+    @GetMapping("/selectOldIncidentByCodes")
+    public String test11() { return "SUCCESS: " + mapper.selectOldIncidentByCodes(Arrays.asList("C001"), 30).size(); }
+    
+    @GetMapping("/groupByFocusIp")
+    public String test12() { return "SUCCESS: " + mapper.groupByFocusIp(Arrays.asList("192.168.1.1")).size(); }
+    
+    @GetMapping("/groupNameByFocusIp")
+    public String test13() { return "SUCCESS: " + mapper.groupNameByFocusIp(Arrays.asList("192.168.1.1")).size(); }
+    
+    @GetMapping("/selectOldHistoryIds")
+    public String test14() { return "SUCCESS: " + mapper.selectOldHistoryIds(30).size(); }
+    
+    @GetMapping("/deleteHistoryByIds")
+    public String test15() { return "SUCCESS: " + mapper.deleteHistoryByIds(Arrays.asList(1L, 2L)); }
+}

@@ -1,25 +1,20 @@
-package com.dbapp.extension.xdr.test.mapper;
+package com.dbapp.extension.xdr.threatMonitor.mapper;
 
+import com.dbapp.extension.xdr.threatMonitor.entity.RiskIncidentOutGoing;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+import java.util.Map;
 
-/**
- * RiskIncidentOutGoingHistory Mapper 接口
- * 
- * 对应 XML: RiskIncidentOutGoingHistoryMapper.xml
- * 
- * 生成时间: 2026-01-26 11:03:49
- */
 @Mapper
 public interface RiskIncidentOutGoingHistoryMapper {
-
-    Object mappingFromClueSecurityEvent();  // TODO: 根据实际返回类型修改
-    Object mappingNormalSecurityEvent();  // TODO: 根据实际返回类型修改
-    Object queryListByTime();  // TODO: 根据实际返回类型修改
-    Object queryOutGoingList();  // TODO: 根据实际返回类型修改
-    int backUpLastTermData(RiskIncidentOutGoingHistory entity);
-    void batchInsertOrUpdateIncident(RiskIncidentOutGoingHistory entity);  // UPDATE 无返回值
-    void batchUpdatePayload(RiskIncidentOutGoingHistory entity);  // UPDATE 无返回值
-    int deleteOldIncident(Integer id);
-    int clearHistoryData(Integer id);
-
+    List<RiskIncidentOutGoing> mappingFromClueSecurityEvent(@Param("params") Map<String, Object> params);
+    List<RiskIncidentOutGoing> mappingNormalSecurityEvent(@Param("params") Map<String, Object> params);
+    int backUpLastTermData(@Param("params") Map<String, Object> params);
+    void batchInsertOrUpdateIncident(@Param("list") List<RiskIncidentOutGoing> list);
+    int deleteOldIncident(@Param("saveDays") Integer saveDays);
+    List<RiskIncidentOutGoing> queryListByTime(@Param("startTime") String startTime, @Param("endTime") String endTime);
+    void batchUpdatePayload(@Param("list") List<RiskIncidentOutGoing> list);
+    int clearHistoryData(@Param("saveDays") Integer saveDays);
+    List<Map<String, Object>> queryOutGoingList(@Param("params") Map<String, Object> params);
 }

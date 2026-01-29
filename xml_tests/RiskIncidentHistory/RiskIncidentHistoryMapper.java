@@ -1,26 +1,20 @@
-package com.dbapp.extension.xdr.test.mapper;
+package com.dbapp.extension.xdr.threatMonitor.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+import java.util.Map;
 
-/**
- * RiskIncidentHistory Mapper 接口
- * 
- * 对应 XML: RiskIncidentHistoryMapper.xml
- * 
- * 生成时间: 2026-01-26 11:03:49
- */
 @Mapper
 public interface RiskIncidentHistoryMapper {
-
-    Object getRiskHistoryList();  // TODO: 根据实际返回类型修改
-    Object queryEventCount();  // TODO: 根据实际返回类型修改
-    Object getFocusObject();  // TODO: 根据实际返回类型修改
-    Object FocusIpMessage();  // TODO: 根据实际返回类型修改
-    Object selectAllByIdList();  // TODO: 根据实际返回类型修改
-    Object getCount();  // TODO: 根据实际返回类型修改
-    Object getFocusIpCount();  // TODO: 根据实际返回类型修改
-    Object queryFocusIps();  // TODO: 根据实际返回类型修改
-    Object queryFocusIpCount();  // TODO: 根据实际返回类型修改
-    Object countByDate();  // TODO: 根据实际返回类型修改
-
+    List<Map<String, Object>> getRiskHistoryList(@Param("params") Map<String, Object> params);
+    List<Map<String, Object>> queryEventCount(@Param("params") Map<String, Object> params);
+    List<String> getFocusObject();
+    List<Map<String, Object>> FocusIpMessage(@Param("list") List<String> list);
+    List<Map<String, Object>> selectAllByIdList(@Param("idList") List<Integer> idList);
+    Long getCount(@Param("params") Map<String, Object> params);
+    Long getFocusIpCount(@Param("params") Map<String, Object> params);
+    List<Map<String, Object>> queryFocusIps(@Param("params") Map<String, Object> params);
+    Long queryFocusIpCount(@Param("params") Map<String, Object> params);
+    Integer countByDate(@Param("date") String date);
 }

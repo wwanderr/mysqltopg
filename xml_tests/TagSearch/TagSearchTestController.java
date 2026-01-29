@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/test/tag-search")
+@RequestMapping("/test/tagSearch")
 public class TagSearchTestController {
     @Autowired
     private TagSearchMapper mapper;

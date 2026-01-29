@@ -11,109 +11,65 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * AlarmOutGoingConfig 测试 Controller
- * 
- * 所有测试方法使用 GET 请求，参数在方法内部写死
- * 通过 Postman 调用 http://localhost:8080/test/alarmoutgoingconfig/testX_methodName
- * 
- * 测试数据ID范围：1001-1005
- * 
- * 生成时间: 2026-01-26
+ * AlarmOutGoingConfig (告警外发配置) 深度测试控制器
+ * 主表：t_alarm_out_going_config (15个字段)
+ * 测试方法数：2 (delById, updateSendStatus)
+ * 生成时间：2026-01-28
  */
 @RestController
-@RequestMapping("/test/alarmoutgoingconfig")
+@RequestMapping("/test/alarmOutGoingConfig")
 public class AlarmOutGoingConfigTestController {
 
     @Autowired
     private AlarmOutGoingConfigMapper mapper;
 
     /**
-     * 接口列表
-     */
-    @GetMapping("/")
-    public Map<String, Object> index() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("module", "AlarmOutGoingConfig 测试接口");
-        result.put("total_tests", 2);
-        result.put("test_data_range", "ID: 1001-1005");
-        return result;
-    }
-
-    /**
-     * 测试1：删除告警外发配置
-     * 场景：删除 ID=1004 的配置
-     * 预期：is_del 从 0 变为 1
+     * 方法1：delById - 删除告警外发配置（逻辑删除）
+     * 测试条件：UPDATE SET is_del=1
      */
     @GetMapping("/test1_delById")
-    public Map<String, Object> test1_delById() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("test", "delById");
-        
+    public String test1_delById() {
         try {
-            // 构造测试数据（参数写死）
+            System.out.println("测试: delById - 逻辑删除告警外发配置");
             Map<String, Object> param = new HashMap<>();
             param.put("alarmOutGoingConfig", new AlarmOutGoingConfig() {{
-                setId(1004L);  // 使用测试数据中的 ID
+                setId(1004L);  // 测试数据中的ID
             }});
             
-            // 执行删除（UPDATE 无返回值）
             mapper.delById(param);
-            
-            result.put("status", "SUCCESS");
-            result.put("deleted_id", 1004);
-            result.put("message", "配置已标记为删除");
-            
-            System.out.println("✓ 测试通过：delById (ID=1004)");
-            
+            System.out.println("结果: 已标记删除 ID=1004");
+            return "SUCCESS: 1";
         } catch (Exception e) {
-            result.put("status", "ERROR");
-            result.put("error", e.getMessage());
+            String errorMsg = "测试方法 test1_delById 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
         }
-        
-        return result;
     }
 
     /**
-     * 测试2：更新发送状态
-     * 场景：ID=1001 发送成功
-     * 预期：
-     * - last_send_time 更新为当前时间
-     * - send_count +1
-     * - last_send_result = "成功"
-     * - succeed_count +1（因为成功）
+     * 方法2：updateSendStatus - 更新发送状态
+     * 测试条件：UPDATE SET last_send_time, send_count+1, succeed_count+1 (if 成功)
      */
     @GetMapping("/test2_updateSendStatus")
-    public Map<String, Object> test2_updateSendStatus() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("test", "updateSendStatus");
-        
+    public String test2_updateSendStatus() {
         try {
-            // 构造测试数据（参数写死）
+            System.out.println("测试: updateSendStatus - 更新发送状态");
             Map<String, Object> param = new HashMap<>();
             param.put("alarmOutGoingConfig", new AlarmOutGoingConfig() {{
                 setId(1001L);
                 setLastSendResult("成功");
-                setCauseOfFailure(null);  // 成功时清空失败原因
+                setCauseOfFailure(null);
             }});
             
-            // 执行更新（UPDATE 无返回值）
             mapper.updateSendStatus(param);
-            
-            result.put("status", "SUCCESS");
-            result.put("config_id", 1001);
-            result.put("send_result", "成功");
-            result.put("message", "发送状态更新成功");
-            result.put("note", "send_count 和 succeed_count 都会 +1");
-            
-            System.out.println("✓ 测试通过：updateSendStatus (成功)");
-            
+            System.out.println("结果: 更新成功 ID=1001");
+            return "SUCCESS: 1";
         } catch (Exception e) {
-            result.put("status", "ERROR");
-            result.put("error", e.getMessage());
+            String errorMsg = "测试方法 test2_updateSendStatus 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
         }
-        
-        return result;
     }
 }

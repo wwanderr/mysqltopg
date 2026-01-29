@@ -24,7 +24,7 @@ import java.util.Map;
  * 生成时间: 2026-01-26
  */
 @RestController
-@RequestMapping("/test/eventtemplate")
+@RequestMapping("/test/eventTemplate")
 public class EventTemplateTestController {
 
     @Autowired

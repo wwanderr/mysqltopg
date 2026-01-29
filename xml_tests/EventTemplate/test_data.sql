@@ -50,7 +50,7 @@ INSERT INTO "t_event_template" (
     true,  -- 已启用
     CURRENT_TIMESTAMP - INTERVAL '1 day',
     CURRENT_TIMESTAMP - INTERVAL '2 hours',
-    'SSH_BRUTE_FORCE_001',
+    100001,  -- uniq_code: int8 类型
     NULL,
     9,  -- 高优先级
     'src_ip,dst_ip,protocol,dst_port,timestamp',
@@ -76,7 +76,7 @@ INSERT INTO "t_event_template" (
     true,
     CURRENT_TIMESTAMP - INTERVAL '3 days',
     CURRENT_TIMESTAMP - INTERVAL '30 minutes',
-    'SQL_INJECTION_002',
+    100002,  -- uniq_code: int8 类型
     NULL,
     10,  -- 严重优先级
     'src_ip,dst_ip,http_host,http_uri,http_method',
@@ -102,7 +102,7 @@ INSERT INTO "t_event_template" (
     true,
     CURRENT_TIMESTAMP - INTERVAL '7 days',
     CURRENT_TIMESTAMP - INTERVAL '1 hour',
-    'PORT_SCAN_003',
+    100003,  -- uniq_code: int8 类型
     NULL,
     5,  -- 中等优先级
     'src_ip,dst_ip,dst_port,protocol,syn_flag',
@@ -128,7 +128,7 @@ INSERT INTO "t_event_template" (
     false,  -- 暂时禁用，正在测试
     CURRENT_TIMESTAMP - INTERVAL '15 days',
     NULL,  -- 从未执行过
-    'MALWARE_DOWNLOAD_004',
+    100004,  -- uniq_code: int8 类型
     NULL,
     8,
     'src_ip,dst_ip,http_url,file_name,file_size',
@@ -154,7 +154,7 @@ INSERT INTO "t_event_template" (
     true,
     CURRENT_TIMESTAMP - INTERVAL '5 days',
     CURRENT_TIMESTAMP - INTERVAL '45 minutes',
-    'ABNORMAL_OUTBOUND_005',
+    100005,  -- uniq_code: int8 类型
     NULL,
     6,
     'src_ip,dst_ip,dst_port,bytes_sent,bytes_received',

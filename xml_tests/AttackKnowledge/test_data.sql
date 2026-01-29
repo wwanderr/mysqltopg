@@ -1,9 +1,61 @@
--- 测试数据：AttackKnowledge（攻击知识库）
-DELETE FROM "t_attack_knowledge" WHERE id >= 1001 AND id <= 1003;
+-- t_attack_knowledge 测试数据
+-- ATT&CK框架相关攻击知识测试数据
 
-INSERT INTO "t_attack_knowledge" ("id", "attack_name", "attack_type", "attack_desc", "attack_indicators", "defense_suggestions", "severity", "reference_links", "create_time", "update_time") VALUES 
-(1001, 'Log4Shell远程代码执行', 'RCE', 'Apache Log4j2 JNDI注入漏洞，可导致远程代码执行', '{"indicators": ["${jndi:", "ldap://", "rmi://"]}', '升级Log4j至2.17.1或更高版本，或禁用JNDI lookup功能', 'critical', '["https://nvd.nist.gov/vuln/detail/CVE-2021-44228"]', CURRENT_TIMESTAMP - INTERVAL '120 days', CURRENT_TIMESTAMP - INTERVAL '30 days'),
-(1002, 'WannaCry勒索软件', 'Ransomware', '利用EternalBlue漏洞传播的勒索软件', '{"indicators": ["ms17-010", ".WNCRY", "@WanaDecryptor@.exe"]}', '安装MS17-010补丁，关闭445端口，定期备份', 'critical', '["https://en.wikipedia.org/wiki/WannaCry_ransomware_attack"]', CURRENT_TIMESTAMP - INTERVAL '365 days', CURRENT_TIMESTAMP - INTERVAL '180 days'),
-(1003, 'SQL注入攻击', 'Injection', '通过SQL语句注入恶意代码', '{"indicators": ["union select", "or 1=1", "drop table"]}', '使用参数化查询，输入验证，最小权限原则', 'high', '["https://owasp.org/www-community/attacks/SQL_Injection"]', CURRENT_TIMESTAMP - INTERVAL '200 days', CURRENT_TIMESTAMP - INTERVAL '60 days');
+-- 清空表（可选）
+TRUNCATE TABLE t_attack_knowledge RESTART IDENTITY CASCADE;
 
-SELECT setval('"t_attack_knowledge_id_seq"', 1003, true);
+-- 插入战术级别数据（Tactics - level='tactic'）
+INSERT INTO t_attack_knowledge 
+(technique_code, technique_name, technique_name_ch, parent_code, "level", os, perspective, device_type, sort)
+VALUES
+-- 战术1: Initial Access (初始访问)
+('TA0001', 'Initial Access', '初始访问', '', 'tactic', 'Windows,Linux', 'enterprise', 'endpoint,server', 1),
+
+-- 战术2: Execution (执行)
+('TA0002', 'Execution', '执行', '', 'tactic', 'Windows,Linux,macOS', 'enterprise', 'endpoint', 2),
+
+-- 战术3: Persistence (持久化)
+('TA0003', 'Persistence', '持久化', '', 'tactic', 'Windows', 'enterprise', 'endpoint,server', 3);
+
+-- 插入技术级别数据（Techniques - level='technique'）
+INSERT INTO t_attack_knowledge 
+(technique_code, technique_name, technique_name_ch, parent_code, "level", os, perspective, device_type, sort)
+VALUES
+-- TA0001下的技术：Exploit Public-Facing Application
+('T1190', 'Exploit Public-Facing Application', '利用面向公众的应用程序', 'TA0001', 'technique', 'Windows,Linux', 'enterprise', 'server', 1),
+
+-- TA0001下的技术：Phishing
+('T1566', 'Phishing', '钓鱼攻击', 'TA0001', 'technique', 'Windows,Linux,macOS', 'enterprise', 'endpoint', 2),
+
+-- TA0002下的技术：Command and Scripting Interpreter
+('T1059', 'Command and Scripting Interpreter', '命令和脚本解释器', 'TA0002', 'technique', 'Windows,Linux,macOS', 'enterprise', 'endpoint,server', 1),
+
+-- TA0002下的技术：User Execution
+('T1204', 'User Execution', '用户执行', 'TA0002', 'technique', 'Windows,macOS', 'enterprise', 'endpoint', 2),
+
+-- TA0003下的技术：Boot or Logon Autostart Execution
+('T1547', 'Boot or Logon Autostart Execution', '开机或登录自启动执行', 'TA0003', 'technique', 'Windows', 'enterprise', 'endpoint', 1),
+
+-- TA0003下的技术：Create or Modify System Process
+('T1543', 'Create or Modify System Process', '创建或修改系统进程', 'TA0003', 'technique', 'Windows,Linux', 'enterprise', 'endpoint,server', 2);
+
+-- 插入子技术级别数据（Sub-techniques - level='sub-technique'）
+INSERT INTO t_attack_knowledge 
+(technique_code, technique_name, technique_name_ch, parent_code, "level", os, perspective, device_type, sort)
+VALUES
+-- T1059的子技术：PowerShell
+('T1059.001', 'PowerShell', 'PowerShell脚本', 'T1059', 'sub-technique', 'Windows', 'enterprise', 'endpoint,server', 1),
+
+-- T1059的子技术：Bash
+('T1059.004', 'Unix Shell', 'Unix Shell脚本', 'T1059', 'sub-technique', 'Linux,macOS', 'enterprise', 'endpoint,server', 2),
+
+-- T1566的子技术：Spearphishing Attachment
+('T1566.001', 'Spearphishing Attachment', '鱼叉式钓鱼附件', 'T1566', 'sub-technique', 'Windows,Linux,macOS', 'enterprise', 'endpoint', 1),
+
+-- T1566的子技术：Spearphishing Link
+('T1566.002', 'Spearphishing Link', '鱼叉式钓鱼链接', 'T1566', 'sub-technique', 'Windows,Linux,macOS', 'all', 'endpoint', 2);
+
+-- 验证查询
+SELECT '数据插入完成' as status;
+SELECT COUNT(*) as total_count FROM t_attack_knowledge;
+SELECT "level", COUNT(*) as count FROM t_attack_knowledge GROUP BY "level";

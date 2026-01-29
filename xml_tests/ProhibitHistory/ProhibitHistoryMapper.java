@@ -1,53 +1,35 @@
-package com.dbapp.extension.xdr.test.mapper;
+package com.dbapp.extension.xdr.linkageHandle.mapper;
 
+import com.dbapp.extension.xdr.linkageHandle.entity.*;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+import java.util.Map;
 
 /**
- * ProhibitHistory Mapper 接口
- * 
- * 对应 XML: ProhibitHistoryMapper.xml
- * 
- * 生成时间: 2026-01-26 11:03:49
+ * ProhibitHistory Mapper接口（19个方法）
+ * 映射文件：ProhibitHistoryMapper.xml
  */
 @Mapper
 public interface ProhibitHistoryMapper {
-
-    Object sumLaunchTimesByStrategyId();  // TODO: 根据实际返回类型修改
-    Object getProhibitListByCondition();  // TODO: 根据实际返回类型修改
-    Object listByCondition();  // TODO: 根据实际返回类型修改
-    Object getProhibitListCount();  // TODO: 根据实际返回类型修改
-    Object getBlockIPDistribution();  // TODO: 根据实际返回类型修改
-    Object getTrend();  // TODO: 根据实际返回类型修改
-    Object getBlockIPCount();  // TODO: 根据实际返回类型修改
-    Object getBlockIPTodayCount();  // TODO: 根据实际返回类型修改
-    Object getAutoBlockIPCount();  // TODO: 根据实际返回类型修改
-    Object getAutoBlockIPTodayCount();  // TODO: 根据实际返回类型修改
-    Object getTriggerSubscriptionCount();  // TODO: 根据实际返回类型修改
-    Object getStrategyCount();  // TODO: 根据实际返回类型修改
-    Object getProhibitListByDeviceId();  // TODO: 根据实际返回类型修改
-    Object getPairHistories();  // TODO: 根据实际返回类型修改
-    Object getSingleHistories();  // TODO: 根据实际返回类型修改
-    Object getHistoryByBlockList();  // TODO: 根据实际返回类型修改
-    Object getHistoryById();  // TODO: 根据实际返回类型修改
-    Object getUnsealIpTodayCount();  // TODO: 根据实际返回类型修改
-    Object findHistoriesByDomain();  // TODO: 根据实际返回类型修改
-    Object findEdrProhibitHistory();  // TODO: 根据实际返回类型修改
-    Object findEdrProhibitHistories();  // TODO: 根据实际返回类型修改
-    Object getAiGentNoDirectionHistory();  // TODO: 根据实际返回类型修改
-    Object getAiGentNoDirectionHistories();  // TODO: 根据实际返回类型修改
-    Object getAiGentDirectionHistories();  // TODO: 根据实际返回类型修改
-    Object getAiGentProhibitDomain();  // TODO: 根据实际返回类型修改
-    Object prohibitListByStrategyId();  // TODO: 根据实际返回类型修改
-    Object getIdsByStrategyId();  // TODO: 根据实际返回类型修改
-    Object getBlockDeviceIds();  // TODO: 根据实际返回类型修改
-    Object getBlockDeviceIps();  // TODO: 根据实际返回类型修改
-    Object countEdrProhibit();  // TODO: 根据实际返回类型修改
-    Object getDomainList();  // TODO: 根据实际返回类型修改
-    int insertProhibitHistory(ProhibitHistory entity);
-    void updateByBlockipAndDeviceIp(ProhibitHistory entity);  // UPDATE 无返回值
-    void updateStatusById(ProhibitHistory entity);  // UPDATE 无返回值
-    void updateDeviceIpAndId(ProhibitHistory entity);  // UPDATE 无返回值
-    int deleteByIds(Integer id);
-    int deleteByStrategyId(Integer id);
-
+    
+    List<BaseHistoryVO> sumLaunchTimesByStrategyId(@Param("strategyIds") List<Integer> strategyIds);
+    int insertProhibitHistory(@Param("prohibitHistory") ProhibitHistory prohibitHistory);
+    void updateByBlockipAndDeviceIp(@Param("prohibitHistory") ProhibitHistory prohibitHistory);
+    void updateStatusById(@Param("prohibitHistory") ProhibitHistory prohibitHistory);
+    int deleteByIds(@Param("ids") List<Long> ids);
+    List<ProhibitHistoryVO> getProhibitListByCondition(@Param("param") ProhibitHistoryParam param);
+    List<ProhibitHistoryVO> listByCondition(@Param("param") ProhibitHistoryParam param);
+    Long getProhibitListCount(@Param("param") ProhibitHistoryParam param);
+    List<BlockIPDistribution> getBlockIPDistribution(@Param("startTime") String startTime, @Param("endTime") String endTime);
+    List<BlockIPTrend> getTrend(@Param("startTime") String startTime, @Param("endTime") String endTime);
+    Long getBlockIPCount(@Param("startTime") String startTime, @Param("endTime") String endTime);
+    Long getBlockIPTodayCount();
+    Long getAutoBlockIPCount(@Param("startTime") String startTime, @Param("endTime") String endTime);
+    Long getAutoBlockIPTodayCount();
+    Long getTriggerSubscriptionCount(@Param("startTime") String startTime, @Param("endTime") String endTime);
+    Long getStrategyCount(@Param("startTime") String startTime, @Param("endTime") String endTime);
+    List<ProhibitHistoryVO> getProhibitListByDeviceId(@Param("deviceId") String deviceId, @Param("linkDeviceIp") String linkDeviceIp);
+    List<ProhibitHistoryVO> getPairHistories(@Param("params") Map<String, Object> params);
+    List<ProhibitHistoryVO> getSingleHistories(@Param("params") Map<String, Object> params);
 }

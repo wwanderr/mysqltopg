@@ -1,163 +1,360 @@
 package com.test.controller;
 
 import com.dbapp.extension.xdr.linkageHandle.mapper.ProhibitHistoryMapper;
-import com.dbapp.extension.xdr.linkageHandle.entity.ProhibitHistoryParam;
-import com.dbapp.extension.xdr.linkageHandle.entity.ProhibitHistoryVO;
+import com.dbapp.extension.xdr.linkageHandle.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
-import java.util.Arrays;
-import java.util.List;
-
-/**
- * ProhibitHistory 测试控制器
- * 
- * 测试说明：
- * 1. 所有方法使用 GET 请求
- * 2. 参数已硬编码，无需 Postman 传参
- * 3. 测试数据参考：test_data.sql 中的场景
- * 
- * 核心测试方法（从37个方法中精选5个）：
- * - insertProhibitHistory: 插入封禁历史
- * - getProhibitListByCondition: 按条件查询封禁列表
- * - updateStatusById: 更新封禁状态
- * - deleteByIds: 删除封禁记录
- * - getBlockIPCount: 获取封禁IP统计
- */
 @RestController
-@RequestMapping("/test/prohibit-history")
+@RequestMapping("/test/prohibitHistory")
 public class ProhibitHistoryTestController {
-
     @Autowired
     private ProhibitHistoryMapper mapper;
 
+    @GetMapping("/sumLaunchTimesByStrategyId")
+    public String test01() {
+        List<BaseHistoryVO> result = mapper.sumLaunchTimesByStrategyId(Arrays.asList(1001, 1002));
+        return "SUCCESS: " + result.size();
+    }
+
+    @GetMapping("/insertProhibitHistory")
+    public String test02() {
+        ProhibitHistory history = new ProhibitHistory();
+        history.setBlockIp("10.0.0.1");
+        history.setLinkDeviceIp("192.168.1.1");
+        int rows = mapper.insertProhibitHistory(history);
+        return "SUCCESS: " + rows;
+    }
+
+    @GetMapping("/updateByBlockipAndDeviceIp")
+    public String test03() {
+        ProhibitHistory history = new ProhibitHistory();
+        history.setBlockIp("10.0.0.1");
+        history.setLinkDeviceIp("192.168.1.1");
+        mapper.updateByBlockipAndDeviceIp(history);
+        return "SUCCESS";
+    }
+
+    @GetMapping("/updateStatusById")
+    public String test04() {
+        ProhibitHistory history = new ProhibitHistory();
+        history.setId(1L);
+        history.setStatus(false);
+        mapper.updateStatusById(history);
+        return "SUCCESS";
+    }
+
+    @GetMapping("/deleteByIds")
+    public String test05() {
+        int rows = mapper.deleteByIds(Arrays.asList(1L, 2L));
+        return "SUCCESS: " + rows;
+    }
+
+    @GetMapping("/getProhibitListByCondition")
+    public String test06() {
+        ProhibitHistoryParam param = new ProhibitHistoryParam();
+        List<ProhibitHistoryVO> result = mapper.getProhibitListByCondition(param);
+        return "SUCCESS: " + result.size();
+    }
+
+    @GetMapping("/listByCondition")
+    public String test07() {
+        ProhibitHistoryParam param = new ProhibitHistoryParam();
+        List<ProhibitHistoryVO> result = mapper.listByCondition(param);
+        return "SUCCESS: " + result.size();
+    }
+
+    @GetMapping("/getProhibitListCount")
+    public String test08() {
+        ProhibitHistoryParam param = new ProhibitHistoryParam();
+        Long count = mapper.getProhibitListCount(param);
+        return "SUCCESS: " + count;
+    }
+
+    @GetMapping("/getBlockIPDistribution")
+    public String test09() {
+        String now = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String yesterday = LocalDateTime.now().minusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        List<BlockIPDistribution> result = mapper.getBlockIPDistribution(yesterday, now);
+        return "SUCCESS: " + result.size();
+    }
+
+    @GetMapping("/getTrend")
+    public String test10() {
+        String now = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String lastWeek = LocalDateTime.now().minusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        List<BlockIPTrend> result = mapper.getTrend(lastWeek, now);
+        return "SUCCESS: " + result.size();
+    }
+
+    @GetMapping("/getBlockIPCount")
+    public String test11() {
+        String now = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String lastWeek = LocalDateTime.now().minusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        Long count = mapper.getBlockIPCount(lastWeek, now);
+        return "SUCCESS: " + count;
+    }
+
+    @GetMapping("/getBlockIPTodayCount")
+    public String test12() {
+        Long count = mapper.getBlockIPTodayCount();
+        return "SUCCESS: " + count;
+    }
+
+    @GetMapping("/getAutoBlockIPCount")
+    public String test13() {
+        String now = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String lastWeek = LocalDateTime.now().minusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        Long count = mapper.getAutoBlockIPCount(lastWeek, now);
+        return "SUCCESS: " + count;
+    }
+
+    @GetMapping("/getAutoBlockIPTodayCount")
+    public String test14() {
+        Long count = mapper.getAutoBlockIPTodayCount();
+        return "SUCCESS: " + count;
+    }
+
+    @GetMapping("/getTriggerSubscriptionCount")
+    public String test15() {
+        String now = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String lastWeek = LocalDateTime.now().minusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        Long count = mapper.getTriggerSubscriptionCount(lastWeek, now);
+        return "SUCCESS: " + count;
+    }
+
+    @GetMapping("/getStrategyCount")
+    public String test16() {
+        String now = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String lastWeek = LocalDateTime.now().minusDays(7).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        Long count = mapper.getStrategyCount(lastWeek, now);
+        return "SUCCESS: " + count;
+    }
+
+    @GetMapping("/getProhibitListByDeviceId")
+    public String test17() {
+        List<ProhibitHistoryVO> result = mapper.getProhibitListByDeviceId("device-001", "192.168.1.1");
+        return "SUCCESS: " + result.size();
+    }
+
+    @GetMapping("/getPairHistories")
+    public String test18() {
+        Map<String, Object> params = new HashMap<>();
+        List<ProhibitHistoryVO> result = mapper.getPairHistories(params);
+        return "SUCCESS: " + result.size();
+    }
+
+    @GetMapping("/getSingleHistories")
+    public String test19() {
+        Map<String, Object> params = new HashMap<>();
+        List<ProhibitHistoryVO> result = mapper.getSingleHistories(params);
+        return "SUCCESS: " + result.size();
+    }
+
     /**
-     * 测试1：插入新封禁记录
-     * 场景：自动封禁检测到的DDoS攻击源
+     * 条件分支测试1：listByCondition - direction = 'in' (入向)
+     * <when test="item == 'in'"> direction = 1 </when>
      */
-    @GetMapping("/test-insert")
-    public String testInsertProhibitHistory() {
+    @GetMapping("/testListByConditionDirectionIn")
+    public String testListByCondition_DirectionIn() {
         try {
+            System.out.println("测试: listByCondition - direction = 'in'");
             ProhibitHistoryParam param = new ProhibitHistoryParam();
-            // 使用 test_data.sql 之外的新数据
-            param.setBlockIp("198.51.100.200");  // 新DDoS攻击源
-            param.setDirection("INPUT,OUTPUT");
-            param.setNodeId("node_fw_01");
-            param.setNodeIp("192.168.1.10");
-            param.setNtaName("firewall-main");
-            param.setStrategyId(5001L);
-            param.setLinkDeviceIp("192.168.1.10");
-            param.setLinkDeviceType("firewall");
-            param.setDeviceId("dev_fw_001");
-            param.setEffectTime("3600");  // 1小时
-            param.setCreateType("auto");
-            param.setActionId("action_ddos_001");
-            param.setSource("threat_intelligence");
+            param.setDirection("in");  // 触发 direction = 1 条件
+            param.setLimit(10);
+            param.setOffset(0);
             
-            mapper.insertProhibitHistory(param);
-            
-            System.out.println("✅ 插入成功：封禁IP=" + param.getBlockIp() 
-                + ", 策略ID=" + param.getStrategyId()
-                + ", 生效时间=" + param.getEffectTime() + "秒");
-            
-            return "成功插入封禁记录：" + param.getBlockIp();
+            List<ProhibitHistoryVO> result = mapper.listByCondition(param);
+            System.out.println("结果: 查询到 " + result.size() + " 条入向封禁记录");
+            return "SUCCESS: " + result.size();
         } catch (Exception e) {
-            System.err.println("❌ 插入失败：" + e.getMessage());
+            String errorMsg = "测试方法 testListByCondition_DirectionIn 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
-            return "插入失败：" + e.getMessage();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
         }
     }
 
     /**
-     * 测试2：按条件查询封禁列表
-     * 场景：查询防火墙设备上所有生效中的封禁记录
+     * 条件分支测试2：listByCondition - direction = 'out' (出向)
+     * <when test="item == 'out'"> direction = 2 </when>
      */
-    @GetMapping("/test-query-list")
-    public String testGetProhibitListByCondition() {
+    @GetMapping("/testListByConditionDirectionOut")
+    public String testListByCondition_DirectionOut() {
         try {
+            System.out.println("测试: listByCondition - direction = 'out'");
             ProhibitHistoryParam param = new ProhibitHistoryParam();
-            param.setLinkDeviceType("firewall");  // 查询防火墙设备
-            param.setNodeIp("192.168.1.10");  // 主防火墙节点
-            param.setStatus(true);  // 只查询生效中的
-            param.setPageNum(1);
-            param.setPageSize(10);
+            param.setDirection("out");  // 触发 direction = 2 条件
+            param.setLimit(10);
+            param.setOffset(0);
+            
+            List<ProhibitHistoryVO> result = mapper.listByCondition(param);
+            System.out.println("结果: 查询到 " + result.size() + " 条出向封禁记录");
+            return "SUCCESS: " + result.size();
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testListByCondition_DirectionOut 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 条件分支测试3：listByCondition - direction = 'both' (双向)
+     * <otherwise> direction = 3 </otherwise>
+     */
+    @GetMapping("/testListByConditionDirectionBoth")
+    public String testListByCondition_DirectionBoth() {
+        try {
+            System.out.println("测试: listByCondition - direction = 'both'");
+            ProhibitHistoryParam param = new ProhibitHistoryParam();
+            param.setDirection("both");  // 触发 otherwise (direction = 3) 条件
+            param.setLimit(10);
+            param.setOffset(0);
+            
+            List<ProhibitHistoryVO> result = mapper.listByCondition(param);
+            System.out.println("结果: 查询到 " + result.size() + " 条双向封禁记录");
+            return "SUCCESS: " + result.size();
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testListByCondition_DirectionBoth 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 条件分支测试4：getProhibitListCount - direction = 'in'
+     */
+    @GetMapping("/testGetProhibitListCountDirectionIn")
+    public String testGetProhibitListCount_DirectionIn() {
+        try {
+            System.out.println("测试: getProhibitListCount - direction = 'in'");
+            ProhibitHistoryParam param = new ProhibitHistoryParam();
+            param.setDirection("in");
+            
+            Long count = mapper.getProhibitListCount(param);
+            System.out.println("结果: 统计到 " + count + " 条入向封禁记录");
+            return "SUCCESS: " + count;
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testGetProhibitListCount_DirectionIn 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 条件分支测试5：getProhibitListCount - direction = 'out'
+     */
+    @GetMapping("/testGetProhibitListCountDirectionOut")
+    public String testGetProhibitListCount_DirectionOut() {
+        try {
+            System.out.println("测试: getProhibitListCount - direction = 'out'");
+            ProhibitHistoryParam param = new ProhibitHistoryParam();
+            param.setDirection("out");
+            
+            Long count = mapper.getProhibitListCount(param);
+            System.out.println("结果: 统计到 " + count + " 条出向封禁记录");
+            return "SUCCESS: " + count;
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testGetProhibitListCount_DirectionOut 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 条件分支测试6：getProhibitListCount - direction = 'both'
+     */
+    @GetMapping("/testGetProhibitListCountDirectionBoth")
+    public String testGetProhibitListCount_DirectionBoth() {
+        try {
+            System.out.println("测试: getProhibitListCount - direction = 'both'");
+            ProhibitHistoryParam param = new ProhibitHistoryParam();
+            param.setDirection("both");
+            
+            Long count = mapper.getProhibitListCount(param);
+            System.out.println("结果: 统计到 " + count + " 条双向封禁记录");
+            return "SUCCESS: " + count;
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testGetProhibitListCount_DirectionBoth 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 条件分支测试7：getProhibitListByCondition - 默认排序
+     * <when test="orderByStr == null or orderByStr == ''">
+     */
+    @GetMapping("/testGetProhibitListByConditionDefaultOrder")
+    public String testGetProhibitListByCondition_DefaultOrder() {
+        try {
+            System.out.println("测试: getProhibitListByCondition - 默认排序");
+            ProhibitHistoryParam param = new ProhibitHistoryParam();
+            param.setLimit(10);
+            param.setOffset(0);
+            // 不设置 orderByStr
             
             List<ProhibitHistoryVO> result = mapper.getProhibitListByCondition(param);
-            
-            System.out.println("✅ 查询成功，共 " + result.size() + " 条记录：");
-            for (ProhibitHistoryVO vo : result) {
-                System.out.println("  - ID=" + vo.getId() 
-                    + ", 封禁IP=" + vo.getBlockIp()
-                    + ", 策略ID=" + vo.getStrategyId()
-                    + ", 方向=" + vo.getDirection()
-                    + ", 状态=" + (vo.getStatus() ? "生效中" : "已失效"));
-            }
-            
-            return "查询成功，共 " + result.size() + " 条记录";
+            System.out.println("结果: 查询到 " + result.size() + " 条记录");
+            return "SUCCESS: " + result.size();
         } catch (Exception e) {
-            System.err.println("❌ 查询失败：" + e.getMessage());
+            String errorMsg = "测试方法 testGetProhibitListByCondition_DefaultOrder 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
-            return "查询失败：" + e.getMessage();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
         }
     }
 
     /**
-     * 测试3：更新封禁状态
-     * 场景：将测试数据中的 1002 号记录从生效改为失效（手动解封）
+     * 条件分支测试8：getProhibitListByCondition - 自定义排序
+     * <otherwise> ${orderByStr} </otherwise>
      */
-    @GetMapping("/test-update-status")
-    public void testUpdateStatusById() {
+    @GetMapping("/testGetProhibitListByConditionCustomOrder")
+    public String testGetProhibitListByCondition_CustomOrder() {
         try {
-            Long id = 1002L;  // test_data.sql 中的手动封禁记录
-            Boolean newStatus = false;  // 改为失效
-            
-            mapper.updateStatusById(id, newStatus);
-            
-            System.out.println("✅ 更新成功：ID=" + id + ", 新状态=" + (newStatus ? "生效" : "失效"));
-        } catch (Exception e) {
-            System.err.println("❌ 更新失败：" + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 测试4：删除封禁记录
-     * 场景：删除测试数据中的 1005 号记录（过期的测试封禁）
-     */
-    @GetMapping("/test-delete")
-    public void testDeleteByIds() {
-        try {
-            List<String> ids = Arrays.asList("1005");  // test_data.sql 中的测试环境记录
-            
-            mapper.deleteByIds(ids);
-            
-            System.out.println("✅ 删除成功：删除了 " + ids.size() + " 条记录，IDs=" + ids);
-        } catch (Exception e) {
-            System.err.println("❌ 删除失败：" + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 测试5：获取封禁IP统计
-     * 场景：统计防火墙设备上的封禁IP总数
-     */
-    @GetMapping("/test-count")
-    public String testGetBlockIPCount() {
-        try {
+            System.out.println("测试: getProhibitListByCondition - 自定义排序");
             ProhibitHistoryParam param = new ProhibitHistoryParam();
-            param.setLinkDeviceType("firewall");  // 统计防火墙设备
-            param.setNodeIp("192.168.1.10");  // 主防火墙节点
+            param.setLimit(10);
+            param.setOffset(0);
+            param.setOrderByStr("create_time asc, block_ip asc");  // 自定义排序
             
-            Long count = mapper.getBlockIPCount(param);
-            
-            System.out.println("✅ 统计成功：防火墙设备上共有 " + count + " 个封禁IP");
-            
-            return "封禁IP总数：" + count;
+            List<ProhibitHistoryVO> result = mapper.getProhibitListByCondition(param);
+            System.out.println("结果: 查询到 " + result.size() + " 条记录 (按自定义顺序)");
+            return "SUCCESS: " + result.size();
         } catch (Exception e) {
-            System.err.println("❌ 统计失败：" + e.getMessage());
+            String errorMsg = "测试方法 testGetProhibitListByCondition_CustomOrder 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
-            return "统计失败：" + e.getMessage();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 条件分支测试9：getHistoryByBlockList - prohibitDomain = true (域名封禁)
+     * <when test="prohibitDomain"> t_prohibit_domain_history </when>
+     */
+    @GetMapping("/testGetHistoryByBlockListDomain")
+    public String testGetHistoryByBlockList_Domain() {
+        try {
+            System.out.println("测试: getHistoryByBlockList - 域名封禁");
+            List<String> blockList = Arrays.asList("evil.com", "malware.net");
+            
+            List<ProhibitHistory> result = mapper.getHistoryByBlockList(blockList, true);  // prohibitDomain = true
+            System.out.println("结果: 查询到 " + result.size() + " 条域名封禁记录");
+            return "SUCCESS: " + result.size();
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testGetHistoryByBlockList_Domain 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
         }
     }
 }

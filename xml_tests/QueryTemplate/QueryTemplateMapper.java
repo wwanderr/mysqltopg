@@ -1,19 +1,32 @@
-package com.dbapp.extension.xdr.test.mapper;
+package com.dbapp.extension.xdr.threatMonitor.mapper;
 
+import com.dbapp.extension.xdr.threatMonitor.entity.SecurityEventTemplate;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
- * QueryTemplate Mapper 接口
- * 
- * 对应 XML: QueryTemplateMapper.xml
- * 
- * 生成时间: 2026-01-26 11:03:49
+ * QueryTemplate Mapper接口
+ * 映射文件：QueryTemplateMapper.xml
  */
 @Mapper
 public interface QueryTemplateMapper {
-
-    Object queryAllTemplate();  // TODO: 根据实际返回类型修改
-    Object queryTemplateById();  // TODO: 根据实际返回类型修改
-    void updateById(QueryTemplate entity);  // UPDATE 无返回值
-
+    
+    /**
+     * 查询所有模板
+     */
+    List<SecurityEventTemplate> queryAllTemplate();
+    
+    /**
+     * 根据ID更新模板
+     * @param template 模板对象
+     */
+    void updateById(@Param("template") SecurityEventTemplate template);
+    
+    /**
+     * 根据ID查询模板
+     * @param templateId 模板ID
+     */
+    SecurityEventTemplate queryTemplateById(@Param("templateId") String templateId);
 }

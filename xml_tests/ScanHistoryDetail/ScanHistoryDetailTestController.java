@@ -1,35 +1,213 @@
 package com.test.controller;
 
-import com.dbapp.extension.xdr.scan.mapper.ScanHistoryDetailMapper;
-import com.dbapp.extension.xdr.scan.entity.ScanHistoryDetail;
+import com.dbapp.extension.xdr.linkageHandle.mapper.ScanHistoryDetailMapper;
+import com.dbapp.extension.xdr.linkageHandle.entity.BaseHistoryVO;
+import com.dbapp.extension.xdr.linkageHandle.entity.ScanHistoryDetail;
+import com.dbapp.extension.xdr.linkageHandle.entity.ScanHistoryDetailVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.Timestamp;
+import java.util.*;
 
+/**
+ * ScanHistoryDetail 深度测试控制器
+ * 对应5个XML方法，每个方法测试所有参数
+ * 生成时间: 2026-01-28
+ */
 @RestController
-@RequestMapping("/test/scan-history-detail")
+@RequestMapping("/test/scanHistoryDetail")
 public class ScanHistoryDetailTestController {
+    
     @Autowired
     private ScanHistoryDetailMapper mapper;
 
-    @GetMapping("/test-insert-batch")
-    public void testInsertBatch() {
+    /**
+     * 测试1：countLaunchTimesByStrategyId（测试foreach）
+     * URL: /test/scanHistoryDetail/countLaunchTimesByStrategyId
+     */
+    @GetMapping("/countLaunchTimesByStrategyId")
+    public String testCountLaunchTimesByStrategyId() {
         try {
-            List<ScanHistoryDetail> details = new ArrayList<>();
-            ScanHistoryDetail detail = new ScanHistoryDetail();
-            detail.setScanId(1001L);
-            detail.setTargetIp("192.168.1.100");
-            detail.setTargetPort(80);
-            detail.setVulName("测试漏洞");
-            detail.setVulLevel("medium");
-            details.add(detail);
+            System.out.println("=== 测试: countLaunchTimesByStrategyId（foreach批量统计） ===");
             
-            mapper.insertBatch(details);
-            System.out.println("✅ 批量插入成功");
+            List<Integer> strategyIds = Arrays.asList(6001, 6002, 6003);
+            List<BaseHistoryVO> result = mapper.countLaunchTimesByStrategyId(strategyIds);
+            
+            System.out.println("✓ 查询策略ID: " + strategyIds);
+            for (BaseHistoryVO vo : result) {
+                System.out.println("  - 策略ID=" + vo.getStrategyId() + ", 启动次数=" + vo.getCount());
+            }
+            
+            return "SUCCESS: " + result.size() + " 个策略";
         } catch (Exception e) {
-            System.err.println("❌ 插入失败：" + e.getMessage());
+            String errorMsg = "测试方法 countLaunchTimesByStrategyId 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 测试2：insertBatch（测试foreach批量插入，使用正确字段）
+     * URL: /test/scanHistoryDetail/insertBatch
+     */
+    @GetMapping("/insertBatch")
+    public String testInsertBatch() {
+        try {
+            System.out.println("=== 测试: insertBatch（foreach批量插入） ===");
+            
+            List<ScanHistoryDetail> details = new ArrayList<>();
+            
+            // 插入记录1
+            ScanHistoryDetail detail1 = new ScanHistoryDetail();
+            detail1.setStrategyId(6001L);
+            detail1.setNodeIp("192.168.100.100");
+            detail1.setDeviceIp("10.0.1.100");
+            detail1.setScanTime(new Timestamp(System.currentTimeMillis()));
+            detail1.setScanScope("full");
+            detail1.setScanPath(null);
+            detail1.setScanType("virus");
+            detail1.setStatus("正在扫描");
+            detail1.setSource("test");
+            details.add(detail1);
+            
+            // 插入记录2
+            ScanHistoryDetail detail2 = new ScanHistoryDetail();
+            detail2.setStrategyId(6002L);
+            detail2.setNodeIp("10.20.30.100");
+            detail2.setDeviceIp("10.0.2.200");
+            detail2.setScanTime(new Timestamp(System.currentTimeMillis()));
+            detail2.setScanScope("custom");
+            detail2.setScanPath("/var/log");
+            detail2.setScanType("site");
+            detail2.setStatus("扫描完成");
+            detail2.setSource("test");
+            details.add(detail2);
+            
+            int rows = mapper.insertBatch(details);
+            System.out.println("✓ 插入 " + rows + " 条记录");
+            
+            return "SUCCESS: 插入 " + rows + " 条";
+        } catch (Exception e) {
+            String errorMsg = "测试方法 insertBatch 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 测试3：getIdsByStrategyId（简单查询）
+     * URL: /test/scanHistoryDetail/getIdsByStrategyId
+     */
+    @GetMapping("/getIdsByStrategyId")
+    public String testGetIdsByStrategyId() {
+        try {
+            System.out.println("=== 测试: getIdsByStrategyId ===");
+            
+            List<Long> result = mapper.getIdsByStrategyId(6001L);
+            System.out.println("✓ 策略ID=6001, 历史记录数: " + result.size());
+            
+            return "SUCCESS: " + result.size() + " 条";
+        } catch (Exception e) {
+            String errorMsg = "测试方法 getIdsByStrategyId 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 测试4：selectByOption（测试所有6个if条件 + LEFT JOIN）
+     * URL: /test/scanHistoryDetail/selectByOption
+     */
+    @GetMapping("/selectByOption")
+    public String testSelectByOption() {
+        try {
+            System.out.println("=== 测试: selectByOption（综合参数+JOIN） ===");
+            
+            Map<String, Object> params = new HashMap<>();
+            
+            // 场景1：所有if参数都有值
+            params.put("strategyName", "病毒");  // if1: strategyName (ILIKE查询)
+            params.put("deviceIp", "10.0.1");    // if2: deviceIp (ILIKE查询)
+            params.put("nodeIp", "192.168");     // if3: nodeIp (ILIKE查询)
+            params.put("scanTypeList", Arrays.asList("virus", "site"));  // if4: scanTypeList (in查询)
+            params.put("sourceList", Arrays.asList("manual", "auto"));   // if5: sourceList (in查询)
+            params.put("startTime", "2025-01-01 00:00:00");  // 必需参数
+            params.put("endTime", "2026-12-31 23:59:59");    // 必需参数
+            
+            List<ScanHistoryDetailVO> result1 = mapper.selectByOption(params);
+            System.out.println("✓ 场景1（所有参数）: " + result1.size() + " 条");
+            
+            // 场景2：仅必需参数（测试其他if不满足）
+            Map<String, Object> params2 = new HashMap<>();
+            params2.put("startTime", "2025-01-01 00:00:00");
+            params2.put("endTime", "2026-12-31 23:59:59");
+            
+            List<ScanHistoryDetailVO> result2 = mapper.selectByOption(params2);
+            System.out.println("✓ 场景2（仅时间范围）: " + result2.size() + " 条");
+            
+            // 场景3：测试scanTypeList和sourceList为空
+            Map<String, Object> params3 = new HashMap<>();
+            params3.put("strategyName", "策略");
+            params3.put("scanTypeList", new ArrayList<>());  // 空list，不应触发if
+            params3.put("sourceList", new ArrayList<>());     // 空list，不应触发if
+            params3.put("startTime", "2025-01-01 00:00:00");
+            params3.put("endTime", "2026-12-31 23:59:59");
+            
+            List<ScanHistoryDetailVO> result3 = mapper.selectByOption(params3);
+            System.out.println("✓ 场景3（空list测试）: " + result3.size() + " 条");
+            
+            return "SUCCESS: 共 " + (result1.size() + result2.size() + result3.size()) + " 条";
+        } catch (Exception e) {
+            String errorMsg = "测试方法 selectByOption 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 测试5：selectScanIps（测试所有6个if条件）
+     * URL: /test/scanHistoryDetail/selectScanIps
+     */
+    @GetMapping("/selectScanIps")
+    public String testSelectScanIps() {
+        try {
+            System.out.println("=== 测试: selectScanIps（综合参数查询IP列表） ===");
+            
+            Map<String, Object> params = new HashMap<>();
+            
+            // 场景1：所有if参数
+            params.put("strategyName", "病毒");
+            params.put("deviceIp", "10.0");
+            params.put("nodeIp", "192");
+            params.put("scanTypeList", Arrays.asList("virus"));
+            params.put("sourceList", Arrays.asList("manual"));
+            params.put("startTime", "2025-01-01 00:00:00");
+            params.put("endTime", "2026-12-31 23:59:59");
+            
+            List<String> result1 = mapper.selectScanIps(params);
+            System.out.println("✓ 场景1（所有参数）: " + result1.size() + " 个IP");
+            for (String ip : result1) {
+                System.out.println("  - " + ip);
+            }
+            
+            // 场景2：仅必需参数
+            Map<String, Object> params2 = new HashMap<>();
+            params2.put("startTime", "2025-01-01 00:00:00");
+            params2.put("endTime", "2026-12-31 23:59:59");
+            
+            List<String> result2 = mapper.selectScanIps(params2);
+            System.out.println("✓ 场景2（仅时间范围）: " + result2.size() + " 个IP");
+            
+            return "SUCCESS: 场景1=" + result1.size() + "个IP, 场景2=" + result2.size() + "个IP";
+        } catch (Exception e) {
+            String errorMsg = "测试方法 selectScanIps 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
         }
     }
 }

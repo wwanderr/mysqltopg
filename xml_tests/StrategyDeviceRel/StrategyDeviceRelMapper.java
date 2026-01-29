@@ -1,28 +1,30 @@
-package com.dbapp.extension.xdr.test.mapper;
+package com.dbapp.extension.xdr.linkageHandle.mapper;
 
+import com.dbapp.extension.xdr.linkageHandle.entity.StrategyDeviceRel;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+import java.util.Map;
 
 /**
- * StrategyDeviceRel Mapper 接口
- * 
- * 对应 XML: StrategyDeviceRelMapper.xml
- * 
- * 生成时间: 2026-01-26 11:03:49
+ * StrategyDeviceRel Mapper接口
+ * 映射文件：StrategyDeviceRelMapper.xml
+ * 包含12个方法
  */
 @Mapper
 public interface StrategyDeviceRelMapper {
-
-    Object selectById();  // TODO: 根据实际返回类型修改
-    Object getAlarmStrategyList();  // TODO: 根据实际返回类型修改
-    Object findDeviceByStrateId();  // TODO: 根据实际返回类型修改
-    Object findStrategyIdByDeviceId();  // TODO: 根据实际返回类型修改
-    Object getDeviceCount();  // TODO: 根据实际返回类型修改
-    int insert(StrategyDeviceRel entity);
-    int batchInsert(StrategyDeviceRel entity);
-    void update(StrategyDeviceRel entity);  // UPDATE 无返回值
-    void batchInsertOrUpdate(StrategyDeviceRel entity);  // UPDATE 无返回值
-    void updateDeviceIpAndId(StrategyDeviceRel entity);  // UPDATE 无返回值
-    int deleteRelByStrategyId(Integer id);
-    int deleteRelByStrategyIdAndDeviceId(Integer id);
-
+    
+    int insert(@Param("strategyDeviceRel") StrategyDeviceRel strategyDeviceRel);
+    int batchInsert(@Param("list") List<StrategyDeviceRel> list);
+    void update(@Param("strategyDeviceRel") StrategyDeviceRel strategyDeviceRel);
+    void batchInsertOrUpdate(@Param("list") List<StrategyDeviceRel> list);
+    int deleteRelByStrategyId(@Param("strategyId") Long strategyId);
+    int deleteRelByStrategyIdAndDeviceId(@Param("strategyId") Long strategyId, @Param("deviceId") String deviceId);
+    StrategyDeviceRel selectById(@Param("id") Long id);
+    List<StrategyDeviceRel> getAlarmStrategyList(@Param("params") Map<String, Object> params);
+    List<StrategyDeviceRel> findDeviceByStrateId(@Param("strategyId") Long strategyId);
+    List<Long> findStrategyIdByDeviceId(@Param("deviceId") String deviceId);
+    Integer getDeviceCount(@Param("strategyId") Long strategyId);
+    void updateDeviceIpAndId(@Param("oldDeviceId") String oldDeviceId, @Param("newDeviceIp") String newDeviceIp, @Param("newDeviceId") String newDeviceId);
 }
