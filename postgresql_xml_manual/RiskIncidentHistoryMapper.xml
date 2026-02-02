@@ -277,7 +277,7 @@
         where
             event_code in (
             select event_code
-            from t_risk_incidents
+            from t_risk_incidents_history
             where id = #{id} )
             <if test="ip != null and ip != ''">
                 and focus_ip ILIKE '%' || #{ip} || '%'

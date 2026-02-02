@@ -133,6 +133,57 @@ INSERT INTO "t_risk_incidents_history" (
 SELECT setval('"t_risk_incidents_history_id_seq"', 9010, true);
 
 -- ================================================================
+-- 关联表数据：t_risk_incidents_out_going_history
+-- 用于支持FocusIpMessage、getFocusIpCount、queryFocusIps等测试
+-- ================================================================
+DELETE FROM "t_risk_incidents_out_going_history" WHERE event_id >= 100001 AND event_id <= 100010;
+
+INSERT INTO "t_risk_incidents_out_going_history" (
+    "event_id", "uniq_code", "event_code", "security_incident_id",
+    "name", "template_id", "start_time", "end_time",
+    "top_event_type_chinese", "second_event_type_chinese",
+    "src_geo_region", "security_zone", "device_address",
+    "device_send_product_name", "send_host_address", "machine_code",
+    "rule_type", "focus_ip", "attacker", "victim",
+    "severity", "cat_outcome", "time_part"
+) VALUES
+-- 关联到RH-2026-001的历史数据（event_id=100001）
+(100001, 'RH-2026-001-192.168.1.100', 'RH-2026-001', 1001,
+ 'APT组织横向移动攻击', 'TPL-APT-001',
+ CURRENT_TIMESTAMP - INTERVAL '10 days', CURRENT_TIMESTAMP - INTERVAL '9 days',
+ '入侵攻击', '横向移动',
+ '美国', 'DMZ', '192.168.1.100', 'Firewall-01', '203.0.113.50', 'MAC-001',
+ 'Network Intrusion', '192.168.1.100', '203.0.113.50', '192.168.1.100',
+ 'High', 'OK', CAST('2026-01' AS timestamp)),
+
+-- 关联到RH-2026-001的第二条历史数据
+(100001, 'RH-2026-001-192.168.1.101', 'RH-2026-001', 1002,
+ 'APT组织横向移动攻击', 'TPL-APT-001',
+ CURRENT_TIMESTAMP - INTERVAL '10 days', CURRENT_TIMESTAMP - INTERVAL '9 days',
+ '入侵攻击', '横向移动',
+ '美国', 'Internal', '192.168.1.101', 'Switch-02', '203.0.113.50', 'MAC-002',
+ 'Lateral Movement', '192.168.1.101', '203.0.113.50', '192.168.1.101',
+ 'High', 'Attempt', CAST('2026-01' AS timestamp)),
+
+-- 关联到RH-2026-002的历史数据
+(100002, 'RH-2026-002-10.0.0.50', 'RH-2026-002', 2001,
+ 'SQL注入攻击尝试', 'TPL-WEB-002',
+ CURRENT_TIMESTAMP - INTERVAL '7 days', CURRENT_TIMESTAMP - INTERVAL '6 days',
+ 'Web攻击', 'SQL注入',
+ '中国', 'Public', '10.0.0.50', 'WebServer-01', '198.51.100.20', 'MAC-003',
+ 'Web Application Attack', '10.0.0.50', '198.51.100.20', '10.0.0.50',
+ 'Medium', 'FAIL', CAST('2026-01' AS timestamp));
+
+-- 验证关联数据
+SELECT 
+    event_code AS "事件编号",
+    COUNT(*) AS "历史记录数",
+    STRING_AGG(DISTINCT focus_ip, ', ') AS "关注IP"
+FROM t_risk_incidents_out_going_history
+WHERE event_id >= 100001 AND event_id <= 100010
+GROUP BY event_code;
+
+-- ================================================================
 -- 验证数据统计
 -- ================================================================
 SELECT 
