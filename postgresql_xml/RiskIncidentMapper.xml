@@ -304,7 +304,7 @@
                     alarm_status = #{item.alarmStatus},
                 </if>
                 <if test="item.alarmResults != null and item.alarmResults != ''">
-                    alarm_results = case when is_scenario != 1 then #{item.alarmResults} else alarm_results end,
+                    alarm_results = case when is_scenario != CAST(1 AS INTEGER) then #{item.alarmResults} else alarm_results end,
                 </if>
                 <if test="item.filterContent != null and item.filterContent != ''">
                     filter_content = #{item.filterContent},
@@ -446,10 +446,10 @@
                 and focus_object = #{focusObject,jdbcType=VARCHAR}
             </if>
             <if test="isScenario != null and isScenario == 1">
-                and is_scenario = 1
+                and is_scenario = CAST(1 AS INTEGER)
             </if>
             <if test="isScenario != null and isScenario == 0">
-                and (is_scenario != 1 or is_scenario is null)
+                and (is_scenario != CAST(1 AS INTEGER) or is_scenario is null)
             </if>
             <if test="focusIp != null and focusIp != ''">
                 and focus_ip like '%\\' || #{focusIp || jdbcType=VARCHAR} || '%'
@@ -535,10 +535,10 @@
             </foreach>
         </if>
         <if test="isScenario != null and isScenario == 1">
-            and ti.is_scenario = 1
+            and ti.is_scenario = CAST(1 AS INTEGER)
         </if>
         <if test="isScenario != null and isScenario == 0">
-            and (ti.is_scenario != 1 or ti.is_scenario is null)
+            and (ti.is_scenario != CAST(1 AS INTEGER) or ti.is_scenario is null)
         </if>) a
         GROUP BY a.alarmStatus
     </select>
@@ -703,10 +703,10 @@
             </foreach>
         </if>
         <if test="isScenario != null and isScenario == 1">
-            and ti.is_scenario = 1
+            and ti.is_scenario = CAST(1 AS INTEGER)
         </if>
         <if test="isScenario != null and isScenario == 0">
-            and (ti.is_scenario != 1 or ti.is_scenario is null)
+            and (ti.is_scenario != CAST(1 AS INTEGER) or ti.is_scenario is null)
         </if>) a
         GROUP BY a.threatSeverity
     </select>
@@ -760,10 +760,10 @@
             </foreach>
         </if>
         <if test="isScenario != null and isScenario == 1">
-            and ti.is_scenario = 1
+            and ti.is_scenario = CAST(1 AS INTEGER)
         </if>
         <if test="isScenario != null and isScenario == 0">
-            and (ti.is_scenario != 1 or ti.is_scenario is null)
+            and (ti.is_scenario != CAST(1 AS INTEGER) or ti.is_scenario is null)
         </if>) a
         GROUP BY a.name
     </select>
@@ -816,10 +816,10 @@
             </foreach>
         </if>
         <if test="isScenario != null and isScenario == 1">
-            and ti.is_scenario = 1
+            and ti.is_scenario = CAST(1 AS INTEGER)
         </if>
         <if test="isScenario != null and isScenario == 0">
-            and (ti.is_scenario != 1 or ti.is_scenario is null)
+            and (ti.is_scenario != CAST(1 AS INTEGER) or ti.is_scenario is null)
         </if>
     </select>
 
@@ -982,7 +982,7 @@
         select * from t_risk_incidents
         where
             end_time >= CURRENT_TIMESTAMP - INTERVAL 12 HOUR
-        AND (is_scenario != 1 or is_scenario is NULL)
+        AND (is_scenario != CAST(1 AS INTEGER) or is_scenario is NULL)
         AND data_source = 'alert'
     </select>
 

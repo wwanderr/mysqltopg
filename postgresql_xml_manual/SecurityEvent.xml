@@ -846,7 +846,7 @@
 	</select>
 
 	<update id="updateAlarmResultById">
-		UPDATE t_security_incidents SET alarm_results = #{alarmResults,jdbcType=VARCHAR},is_scenario=1 WHERE id = #{eventId,jdbcType=INTEGER}
+		UPDATE t_security_incidents SET alarm_results = #{alarmResults,jdbcType=VARCHAR},is_scenario=CAST(1 AS INTEGER) WHERE id = #{eventId,jdbcType=BIGINT}
 	</update>
 
 	<select id="getExistThreadEvents" resultType="com.dbapp.extension.xdr.threatMonitor.entity.ThreadEvent">
