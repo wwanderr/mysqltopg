@@ -104,7 +104,7 @@
         FROM
         t_risk_incidents_history ti
         LEFT JOIN t_event_scenario_data td ON ti.id = td.incident_id
-        LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+        LEFT JOIN t_event_template tm ON CAST(ti.template_id AS BIGINT) = tm.id
         WHERE
         ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
         <if test="eventName != null and eventName != ''">

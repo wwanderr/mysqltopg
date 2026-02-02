@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.xdr.mapper.TSevAgentLicenseMapper">
+    <resultMap id="BaseResultMap" type="com.dbapp.xdr.bean.po.TSevAgentLicense">
+        <!--@mbg.generated-->
+        <!--@Table t_sev_agent_license-->
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="agent_code" jdbcType="VARCHAR" property="agentCode"/>
+        <result column="license_code" jdbcType="VARCHAR" property="licenseCode"/>
+        <result column="product_sn" jdbcType="VARCHAR" property="productSn"/>
+        <result column="file_name" jdbcType="VARCHAR" property="fileName"/>
+        <result column="license_type" jdbcType="INTEGER" property="licenseType"/>
+        <result column="version" jdbcType="INTEGER" property="version"/>
+        <result column="expire_time" jdbcType="TIMESTAMP" property="expireTime"/>
+        <result column="file_uuid" jdbcType="VARCHAR" property="fileUuid"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id, agent_code, license_code, product_sn, file_name, license_type, version, expire_time, file_uuid, create_time,
+        update_time
+    </sql>
+    <select id="selectOneByAgentCode" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_sev_agent_license
+        where agent_code = #{agentCode,jdbcType=VARCHAR}
+        limit 1;
+    </select>
+    <delete id="deleteByAgentCodeIn">
+        <!--@mbg.generated-->
+        delete
+        from t_sev_agent_license
+                where agent_code in
+        <foreach close=")" collection="agentCodeCollection" index="index" item="item" open="(" separator=",">
+            #{item,jdbcType=VARCHAR}
+        </foreach>
+    </delete>
+    <delete id="deleteAll">
+        <!--@mbg.generated-->
+        delete
+        from t_sev_agent_license
+    </delete>
+</mapper>

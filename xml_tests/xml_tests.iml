@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/AlarmOutGoingConfig" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/AlarmStatusTimingTask" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/AssetInfo" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.threatMonitor.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/AttackKnowledge" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.threatMonitor.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/AttackerTrafficTask" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/BlockHistory" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.linkageHandle.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/EventOutGoing" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/EventOutGoingConfig" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/EventScenarioQueue" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.threatMonitor.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/EventTemplate" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/EventUpdateCkAlarmQueue" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.threatMonitor.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/Intelligence" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.threatIntelligence.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/IsolationHistory" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.linkageHandle.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/KillProcessHistory" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.linkageHandle.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/LinkedStrategy" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.linkageHandle.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/LinkedStrategyValidtime" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.linkageHandle.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/LoginBaseline" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.threatAnalysis.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/NoticeHistory" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/OutGoingConfig" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.riskIncident.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/ProhibitHistory" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.linkageHandle.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/QueryTemplate" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.threatMonitor.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/RiskIncident" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.threatMonitor.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/RiskIncidentHistory" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.threatMonitor.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/RiskIncidentOutGoing" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.threatMonitor.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/RiskIncidentOutGoingHistory" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.threatMonitor.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/ScanHistory" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/ScanHistoryDetail" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.linkageHandle.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/ScenarioData" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/ScenarioTemplate" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/SecurityAlarmHandle" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/SecurityEvent" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/SecurityType" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/SecurityZoneSync" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/SharedData" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/StrategyDeviceRel" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.linkageHandle.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/TagSearch" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/ThirdAuth" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/VirusKillHistory" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.test.mapper" />
+      <sourceFolder url="file://$MODULE_DIR$/VulAnalysisSub" isTestSource="false" packagePrefix="com.dbapp.extension.xdr.vulnerabilityAnalysis.mapper" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="mysqlToPg" />
+  </component>
+</module>

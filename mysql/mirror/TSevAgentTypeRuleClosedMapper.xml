@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.xdr.mapper.TSevAgentTypeRuleClosedMapper">
+    <resultMap id="BaseResultMap" type="com.dbapp.xdr.bean.po.TSevAgentTypeRuleClosed">
+        <!--@mbg.generated-->
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="agent_type" jdbcType="VARCHAR" property="agentType"/>
+        <result column="rule_id" jdbcType="VARCHAR" property="ruleId"/>
+        <result column="remarks" jdbcType="VARCHAR" property="remarks"/>
+        <result column="update_history_alarm" jdbcType="BOOLEAN" property="updateHistoryAlarm"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="is_delete" jdbcType="TINYINT" property="delete"/>
+        <result column="data" jdbcType="VARCHAR" property="data" typeHandler="com.dbapp.mybatis.handler.JSONObjectHandler"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id, agent_type, rule_id, remarks, config_version, update_history_alarm, `data`, create_time, update_time
+    </sql>
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_sev_agent_type_rule_closed
+        where id = #{id,jdbcType=BIGINT}
+    </select>
+    <select id="selectByAgentCode" parameterType="java.lang.String" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select id
+        from t_sev_agent_rule_closed
+        where agent_code = #{agentCode,jdbcType=VARCHAR}
+    </select>
+    <select id="selectRemarksById" resultType="java.lang.String">
+        select remarks
+        from t_sev_agent_type_rule_closed
+        where id = #{id,jdbcType=BIGINT}
+    </select>
+    <select id="selectAgentNameByPrimaryKey" resultType="java.lang.String">
+        select t_sev_agent_info.agent_name
+        from t_sev_agent_type_rule_closed,
+             t_sev_agent_rule_closed,
+             t_sev_agent_info
+        where t_sev_agent_rule_closed.rule_closed_id = t_sev_agent_type_rule_closed.id
+          and t_sev_agent_rule_closed.agent_code = t_sev_agent_info.agent_code
+          and t_sev_agent_type_rule_closed.id = #{id,jdbcType=BIGINT}
+        group by t_sev_agent_info.agent_name
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        <!--@mbg.generated-->
+        delete from t_sev_agent_type_rule_closed
+        where id = #{id,jdbcType=BIGINT}
+    </delete>
+    <insert id="insert" keyColumn="id" keyProperty="id" parameterType="com.dbapp.xdr.bean.po.TSevAgentTypeRuleClosed"
+            useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into t_sev_agent_type_rule_closed (agent_type, rule_id, remarks, update_history_alarm, `data`)
+        values (#{agentType,jdbcType=VARCHAR}, #{ruleId,jdbcType=VARCHAR}, #{remarks,jdbcType=VARCHAR},
+        #{updateHistoryAlarm,jdbcType=BOOLEAN}, #{data,jdbcType=VARCHAR,typeHandler=com.dbapp.mybatis.handler.JSONObjectHandler})
+    </insert>
+    <insert id="insertSelective"
+            parameterType="com.dbapp.xdr.bean.po.TSevAgentTypeRuleClosed" >
+        <!--@mbg.generated-->
+        insert into t_sev_agent_type_rule_closed
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="agentType != null">
+                agent_type,
+            </if>
+            <if test="ruleId != null">
+                rule_id,
+            </if>
+            <if test="remarks != null">
+                remarks,
+            </if>
+            <if test="updateHistoryAlarm != null">
+                update_history_alarm,
+            </if>
+            <if test="createTime != null">
+                create_time,
+            </if>
+            <if test="updateTime != null">
+                update_time,
+            </if>
+            <if test="startDateTime != null">
+                start_date_time,
+            </if>
+            <if test="endDateTime != null">
+                end_date_time,
+            </if>
+            <if test="windowId != null">
+                window_id,
+            </if>
+            <if test="aggCondition != null">
+                agg_condition,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="agentType != null">
+                #{agentType,jdbcType=VARCHAR},
+            </if>
+            <if test="ruleId != null">
+                #{ruleId,jdbcType=VARCHAR},
+            </if>
+            <if test="remarks != null">
+                #{remarks,jdbcType=VARCHAR},
+            </if>
+            <if test="updateHistoryAlarm != null">
+                #{updateHistoryAlarm,jdbcType=BOOLEAN},
+            </if>
+            <if test="createTime != null">
+                #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="updateTime != null">
+                #{updateTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="startDateTime != null">
+                #{startDateTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="endDateTime != null">
+                #{endDateTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="windowId != null">
+                #{windowId,jdbcType=VARCHAR},
+            </if>
+            <if test="aggCondition != null">
+                #{aggCondition,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <insert id="insertAgentCode">
+        insert into t_sev_agent_rule_closed
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="ruleClosedId != null">
+                rule_closed_id,
+            </if>
+            <if test="agentCode != null">
+                agentCode,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="ruleClosedId != null">
+                #{ruleClosedId,jdbcType=BIGINT},
+            </if>
+            <if test="agentCode != null">
+                #{agentCode,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective" parameterType="com.dbapp.xdr.bean.po.TSevAgentTypeRuleClosed">
+        <!--@mbg.generated-->
+        update t_sev_agent_type_rule_closed
+        <set>
+            <if test="agentType != null">
+                agent_type = #{agentType,jdbcType=VARCHAR},
+            </if>
+            <if test="ruleId != null">
+                rule_id = #{ruleId,jdbcType=VARCHAR},
+            </if>
+            <if test="remarks != null">
+                remarks = #{remarks,jdbcType=VARCHAR},
+            </if>
+            <if test="updateHistoryAlarm != null">
+                update_history_alarm = #{updateHistoryAlarm,jdbcType=BOOLEAN},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime,jdbcType=TIMESTAMP},
+            </if>
+        </set>
+        where id = #{id,jdbcType=BIGINT}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.dbapp.xdr.bean.po.TSevAgentTypeRuleClosed">
+        <!--@mbg.generated-->
+        update t_sev_agent_type_rule_closed
+        set agent_type = #{agentType,jdbcType=VARCHAR},
+        rule_id = #{ruleId,jdbcType=VARCHAR},
+        remarks = #{remarks,jdbcType=VARCHAR},
+        update_history_alarm = #{updateHistoryAlarm,jdbcType=BOOLEAN},
+        create_time = #{createTime,jdbcType=TIMESTAMP},
+        update_time = #{updateTime,jdbcType=TIMESTAMP}
+        where id = #{id,jdbcType=BIGINT}
+    </update>
+    <update id="cascadeUpdateByPrimaryKey" parameterType="com.dbapp.xdr.bean.po.TSevAgentTypeRuleClosed">
+        <!--@mbg.generated-->
+        update t_sev_agent_type_rule_closed type_rule
+        left join t_sev_agent_rule_closed rule
+        on type_rule.id = rule.rule_closed_id
+        set
+        type_rule.remarks = #{remarks,jdbcType=VARCHAR},
+        type_rule.update_history_alarm = #{updateHistoryAlarm,jdbcType=BOOLEAN},
+        rule.agent_code = #{agentCode,jdbcType=VARCHAR}
+        where type_rule.id = #{id,jdbcType=BIGINT}
+    </update>
+    <select id="selectByAgentTypeAndRuleId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_sev_agent_type_rule_closed
+        where
+        agent_type = #{agentType,jdbcType=VARCHAR}
+        AND rule_id = #{ruleId,jdbcType=VARCHAR}
+    </select>
+    <select id="selectAgentCodeById" resultType="java.lang.String">
+        select t_sev_agent_rule_closed.agent_code
+        from t_sev_agent_type_rule_closed,
+             t_sev_agent_rule_closed
+        where t_sev_agent_type_rule_closed.id = t_sev_agent_rule_closed.rule_closed_id
+          AND t_sev_agent_type_rule_closed.id = #{id,jdbcType=BIGINT}
+    </select>
+
+    <resultMap id="QueryInfoMap" type="com.dbapp.xdr.bean.dto.QueryInfo">
+        <!--@mbg.generated-->
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="agent_type" jdbcType="VARCHAR" property="agentType"/>
+        <result column="rule_id" jdbcType="VARCHAR" property="ruleId"/>
+        <result column="remarks" jdbcType="VARCHAR" property="remarks"/>
+        <result column="update_history_alarm" jdbcType="BOOLEAN" property="updateHistoryAlarm"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="data" jdbcType="VARCHAR" property="data" typeHandler="com.dbapp.mybatis.handler.JSONObjectHandler"/>
+        <collection property="agents" select="getAllAgentById" column="id"/>
+    </resultMap>
+    <select id="selectQueryIfoListByAgentTypeAndRuleId" resultMap="QueryInfoMap">
+        select * from t_sev_agent_type_rule_closed where is_delete = 0
+        <if test='agentType!=null and agentType!=""'>
+            and agent_type = #{agentType,jdbcType=VARCHAR}
+        </if>
+        <if test='ruleId!=null and ruleId!=""'>
+            and rule_id like concat('%',#{ruleId,jdbcType=VARCHAR},'%')
+        </if>
+        order by create_time desc
+        limit #{page.offset} offset #{page.size}
+    </select>
+
+    <select id="getAllAgentById" resultType="com.dbapp.entity.ValueName">
+        select t.rule_closed_id ,ifnull(t.agent_code,'all') `value`,ifnull(a.agent_name,'全部') `name`
+        from t_sev_agent_rule_closed t left join t_sev_agent_info a
+        on t.agent_code =a.agent_code
+        where t.is_delete=0 and t.rule_closed_id =#{id,jdbcType=BIGINT}
+    </select>
+    <update id="updateRuleIdAndAgentTypeAndRemarksAndUpdateHistoryAlarmById">
+        update t_sev_agent_type_rule_closed
+        set rule_id              = #{ruleId,jdbcType=VARCHAR},
+            agent_type           = #{agentType,jdbcType=VARCHAR},
+            remarks              = #{remarks,jdbcType=VARCHAR},
+            update_history_alarm = #{updateHistoryAlarm,jdbcType=BOOLEAN}
+        where id = #{id,jdbcType=NUMERIC}
+    </update>
+    <select id="selectIdByRuleIdAndAgentType" resultType="java.lang.Long">
+        select id
+        from t_sev_agent_type_rule_closed
+        <where>
+            <if test='agentType!=null and agentType!=""'>
+                agent_type = #{agentType,jdbcType=VARCHAR}
+            </if>
+            <if test='ruleId!=null and ruleId!=""'>
+                and rule_id like concat('%',#{ruleId,jdbcType=VARCHAR},'%')
+            </if>
+        </where>
+    </select>
+    <select id="selectQueryInfoByAgentTypeAndRuleId" resultMap="QueryInfoMap">
+        select * from t_sev_agent_type_rule_closed
+        <where>
+            <if test='agentType!=null and agentType!=""'>
+                agent_type = #{agentType,jdbcType=VARCHAR}
+            </if>
+            <if test='ruleId!=null and ruleId!=""'>
+                and rule_id = #{ruleId,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+    <select id="selectIdByRuleIdAndAgentTypePrecisely" resultType="java.lang.Long">
+        select id
+        from t_sev_agent_type_rule_closed
+        <where>
+            <if test='agentType!=null and agentType!=""'>
+                agent_type = #{agentType,jdbcType=VARCHAR}
+            </if>
+            <if test='ruleId!=null and ruleId!=""'>
+                and rule_id = #{ruleId,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+    <select id="selectUpdateHistoryAlarmById" resultType="java.lang.Boolean">
+        select update_history_alarm
+        from t_sev_agent_type_rule_closed
+        where id = #{id,jdbcType=NUMERIC}
+    </select>
+    <resultMap id="QueryInfoOpenApiMap" type="com.dbapp.xdr.bean.dto.QueryInfoOpenApi">
+        <!--@mbg.generated-->
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="agent_type" jdbcType="VARCHAR" property="agentType"/>
+        <result column="rule_id" jdbcType="VARCHAR" property="ruleId"/>
+        <result column="remarks" jdbcType="VARCHAR" property="remarks"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="data" jdbcType="VARCHAR" property="data" typeHandler="com.dbapp.mybatis.handler.JSONObjectHandler"/>
+        <collection property="agents" select="getAllAgentById" column="id"/>
+    </resultMap>
+    <select id="queryListOpenApi" resultMap="QueryInfoOpenApiMap">
+        select * from t_sev_agent_type_rule_closed where is_delete = 0
+        <if test='agentType!=null and agentType!=""'>
+            and agent_type = #{agentType,jdbcType=VARCHAR}
+        </if>
+        <if test='ruleId!=null and ruleId!=""'>
+            and rule_id like concat('%',#{ruleId,jdbcType=VARCHAR},'%')
+        </if>
+        order by ${sortStr}
+        limit #{page.offset} offset #{page.size}
+    </select>
+
+    <delete id="tryCleanCloseRule">
+        delete trc from t_sev_agent_type_rule_closed trc
+        where trc.is_delete=1
+        and not EXISTS (select 1 from t_sev_agent_rule_closed rc where rc.rule_closed_id = trc.id
+            and not EXISTS (select 1 from t_sev_agent_info ti
+                where ti.agent_type = trc.agent_type
+                and (ti.agent_code = rc.agent_code or rc.agent_code is null)
+                and ti.config_version &lt; rc.config_version)
+        )
+    </delete>
+
+    <select id="queryRulesByCreateTime" resultType="java.util.Map">
+        select tsatrc.rule_id as ruleId, ifnull(tsai.agent_name, concat(tsatrc.agent_type,':全部')) as agentName
+        from t_sev_agent_type_rule_closed tsatrc
+        left join t_sev_agent_rule_closed tsarc on tsatrc.id = tsarc.rule_closed_id
+        left join t_sev_agent_info tsai on tsarc.agent_code = tsai.agent_code and tsai.agent_type = tsatrc.agent_type
+        where tsatrc.is_delete = 0 and tsarc.is_delete = 0
+        <if test="startTime != null and startTime != '' and endTime != null and endTime != ''">
+            and tsatrc.create_time BETWEEN #{startTime} and #{endTime}
+        </if>
+    </select>
+</mapper>

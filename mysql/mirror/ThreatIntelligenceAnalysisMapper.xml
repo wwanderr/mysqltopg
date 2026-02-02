@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.xdr.mapper.ThreatIntelligenceAnalysisMapper">
+  <resultMap id="BaseResultMap" type="com.dbapp.xdr.bean.po.ThreatIntelligenceAnalysis">
+    <!--@mbg.generated-->
+    <!--@Table t_threat_intelligence_analysis-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="agent_code" jdbcType="VARCHAR" property="agentCode" />
+    <result column="file_name" jdbcType="VARCHAR" property="fileName" />
+    <result column="file_type" jdbcType="VARCHAR" property="fileType" />
+    <result column="uuid" jdbcType="VARCHAR" property="uuid" />
+    <result column="server_id" jdbcType="BIGINT" property="serverId" />
+    <result column="md5" jdbcType="VARCHAR" property="md5" />
+    <result column="grade" jdbcType="VARCHAR" property="grade" />
+    <result column="result" jdbcType="VARCHAR" property="result" />
+    <result column="score" jdbcType="INTEGER" property="score" />
+    <result column="deal_status" jdbcType="VARCHAR" property="dealStatus" />
+    <result column="upload_time" jdbcType="TIMESTAMP" property="uploadTime" />
+    <result column="finish_time" jdbcType="TIMESTAMP" property="finishTime" />
+    <result column="original" jdbcType="LONGVARCHAR" property="original" />
+    <result column="has_report" jdbcType="BOOLEAN" property="hasReport" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, agent_code, file_name, file_type, uuid, server_id, md5, grade, result, score,
+    deal_status, upload_time, finish_time, original, has_report
+  </sql>
+
+  <select id="getServerById" resultType="com.dbapp.xdr.bean.dto.AptHostDto">
+    select agent_ip server, agent_code machineCode from t_sev_agent_info
+        where agent_code = (select agent_code from t_threat_intelligence_analysis where id = #{id,jdbcType=BIGINT})
+    </select>
+
+  <select id="getAptDeleteDtosByIds" resultType="com.dbapp.xdr.bean.dto.AptDeleteDto">
+    select ttia.id id, tsai.agent_ip server, tsai.agent_code machineCode  from t_threat_intelligence_analysis ttia
+        left join t_sev_agent_info tsai on ttia.agent_code = tsai.agent_code
+    <if test="collection != null and collection.size() > 0">
+      where ttia.id in
+      <foreach close=")" collection="collection" index="index" item="item" open="(" separator=",">
+        #{item,jdbcType=VARCHAR}
+      </foreach>
+    </if>
+  </select>
+
+  <select id="selectAll" resultMap="BaseResultMap">
+    select <include refid="Base_Column_List">
+  </include> from t_threat_intelligence_analysis
+  </select>
+</mapper>

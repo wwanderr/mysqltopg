@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.xdr.mapper.TSevAgentInfoMapper">
+    <resultMap id="BaseResultMap" type="com.dbapp.xdr.bean.po.TSevAgentInfo">
+        <!--@mbg.generated-->
+        <!--@Table t_sev_agent_info-->
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="agent_code" jdbcType="VARCHAR" property="agentCode"/>
+        <result column="agent_name" jdbcType="VARCHAR" property="agentName"/>
+        <result column="agent_ip" jdbcType="VARCHAR" property="agentIp"/>
+        <result column="agent_ip_num" jdbcType="VARCHAR" property="agentIpNum"/>
+        <result column="agent_type" jdbcType="VARCHAR" property="agentType"/>
+        <result column="machine_code" jdbcType="VARCHAR" property="machineCode"/>
+        <result column="device_model" jdbcType="VARCHAR" property="deviceModel"/>
+        <result column="soft_version" jdbcType="VARCHAR" property="softVersion"/>
+        <result column="rule_version" jdbcType="VARCHAR" property="ruleVersion"/>
+        <result column="intelligence_version" jdbcType="VARCHAR" property="intelligenceVersion"/>
+        <result column="config_version" jdbcType="BIGINT" property="configVersion"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="org_id" jdbcType="VARCHAR" property="orgId"/>
+        <result column="regist_time" jdbcType="TIMESTAMP" property="registTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="monitor_id" jdbcType="BIGINT" property="monitorId"/>
+        <result column="upgrade_log_id" jdbcType="INTEGER" property="upgradeLogId"/>
+        <result column="single_login_uri" jdbcType="VARCHAR" property="singleLoginUri" />
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id, agent_code, agent_name, agent_ip, agent_ip_num, agent_type, machine_code, device_model,
+        soft_version, rule_version, intelligence_version, config_version, `status`, org_id,
+        regist_time, update_time, monitor_id, upgrade_log_id, single_login_uri
+    </sql>
+    <delete id="deleteByAgentCodeIn">
+        <!--@mbg.generated-->
+        delete
+        from t_sev_agent_info
+                where agent_code in
+        <foreach close=")" collection="agentCodeCollection" index="index" item="item" open="(" separator=",">
+            #{item,jdbcType=VARCHAR}
+        </foreach>
+    </delete>
+    <select id="selectStatusByAgentCode" resultType="java.lang.String">
+        <!--@mbg.generated-->
+        select `status`
+        from t_sev_agent_info
+        where agent_code = #{agentCode,jdbcType=VARCHAR}
+    </select>
+    <delete id="deleteAll">
+        <!--@mbg.generated-->
+        delete
+        from t_sev_agent_info
+    </delete>
+    <update id="updateOrgIdByAgentCodeIn">
+        <!--@mbg.generated-->
+        update t_sev_agent_info
+        set org_id=#{updatedOrgId,jdbcType=VARCHAR}
+                where agent_code in
+        <foreach close=")" collection="agentCodeCollection" index="index" item="item" open="(" separator=",">
+            #{item,jdbcType=VARCHAR}
+        </foreach>
+    </update>
+    <update id="updateOrgId">
+        <!--@mbg.generated-->
+        update t_sev_agent_info
+        set org_id=#{updatedOrgId,jdbcType=VARCHAR}
+    </update>
+    <update id="updateAgentNameByAgentCode">
+        <!--@mbg.generated-->
+        update t_sev_agent_info
+        set agent_name=#{updatedAgentName,jdbcType=VARCHAR}
+        where agent_code = #{agentCode,jdbcType=VARCHAR}
+    </update>
+    <select id="selectOneMachineCodeByAgentCode" resultType="java.lang.String">
+        <!--@mbg.generated-->
+        select machine_code
+        from t_sev_agent_info
+        where agent_code = #{agentCode,jdbcType=VARCHAR}
+        limit 1
+    </select>
+    <select id="selectOneStatusByAgentCode" resultType="java.lang.String">
+        <!--@mbg.generated-->
+        select `status`
+        from t_sev_agent_info
+        where agent_code = #{agentCode,jdbcType=VARCHAR}
+        limit 1
+    </select>
+    <select id="selectAgentCodeAndAgentNameByAgentType" resultType="com.dbapp.entity.ValueName">
+        select agent_code `value`, agent_name `name`
+        from t_sev_agent_info
+        <where>
+            <if test="agentType != null and agentType != &quot;&quot;">
+                agent_type = #{agentType,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectOneByMetric2Mix" resultMap="BaseResultMap">
+         select tsai.*
+         from t_sev_agent_info tsai
+                      left join t_sev_agent_monitor tsam on tsai.monitor_id = tsam.id
+         where tsai.agent_type = 'APT_SandBox'
+           and status = 'online'
+         ORDER BY tsam.metric2 limit 1
+    </select>
+
+    <select id="getAllHeartBeatTimeOnline" resultType="map">
+        select t.agent_code,t.agent_ip,t.agent_type, t.regist_time, m.create_time heart_beat_time from t_sev_agent_info t left join t_sev_agent_monitor m on t.monitor_id=m.id
+        where t.status = 'online'
+    </select>
+
+    <select id="getAllUpgrading" resultType="map">
+        select t.agent_code,t.agent_ip, t.regist_time, u.updatetime, m.create_time heart_beat_time, t.upgrade_log_id from t_sev_agent_info t
+            left join t_sev_agent_monitor m on t.monitor_id=m.id
+            left join updateinfo u on t.upgrade_log_id=u.id
+        where t.status = 'upgrading'
+    </select>
+
+    <update id="updateAgentIp">
+        update t_sev_agent_info set agent_ip = #{newAgentIp} where agent_ip = #{oldAgentIp} and agent_type = #{agentType}
+    </update>
+</mapper>

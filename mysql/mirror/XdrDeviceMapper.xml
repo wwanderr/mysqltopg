@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.xdr.mapper.XdrDeviceMapper">
+    <select id="getAllXdrDevices" resultType="com.dbapp.xdr.bean.dto.XdrDeviceDto">
+        select agentCode,singleLoginUri, agentName, agentTypeName as agentType, agentIp, machineCode, orgName, cpuUsage, memoryTotal, memoryUse, memoryRadio, diskTotal, diskUse, diskRadio, STATUS, registTime, expireTime, licenseType, offlineTime
+        from t_sev_agent_view
+        <include refid="query"/>
+    </select>
+
+    <select id="getXdrDevices" resultType="com.dbapp.xdr.bean.dto.XdrDeviceDto">
+        select agentCode,singleLoginUri, agentName, agentTypeName as agentType, agentIp, machineCode, orgName, cpuUsage, memoryTotal, memoryUse, memoryRadio, diskTotal, diskUse, diskRadio, STATUS, registTime, expireTime, licenseType, offlineTime
+        from t_sev_agent_view
+        <include refid="query"/>
+    </select>
+
+    <select id="listXdrDevices" resultType="com.dbapp.xdr.bean.response.XdrDeviceBase">
+        select agentCode, agentName as deviceName, agentType,agentTypeName,agentIp as deviceIp,status,UNIX_TIMESTAMP(offlineTime)*1000 as offlineTime
+        from t_sev_agent_view
+        <include refid="query"/>
+    </select>
+
+    <sql id="query">
+        where 1 = 1
+        <if test="request.typeName != null and request.typeName != ''">
+            and agentType = #{request.typeName,jdbcType=VARCHAR}
+        </if>
+        <if test="request.status != null and request.status != ''">
+            and status = #{request.status}
+        </if>
+        <if test="request.deviceName != null and request.deviceName != ''">
+            and (agentName LIKE concat('%', #{request.deviceName,jdbcType=VARCHAR}, '%') or
+            agentIp LIKE concat('%', #{request.deviceName,jdbcType=VARCHAR}, '%'))
+        </if>
+        <if test="request.licenseStatus != null">
+            <choose>
+                <when test="'EXPIRED'.equals(request.licenseStatus)">
+                    <include refid="license_status_expired"/>
+                </when>
+                <when test="'NORMAL'.equals(request.licenseStatus)">
+                    <include refid="license_status_normal"/>
+                </when>
+                <when test="'ABOUT_TO_EXPIRE'.equals(request.licenseStatus)">
+                    <include refid="license_status_about_to_expire"/>
+                </when>
+            </choose>
+        </if>
+    </sql>
+
+    <sql id="license_status_normal">
+        <![CDATA[
+        and (
+                    (licenseType = 0 and expireTime > date_add(now(), INTERVAL 10 day))
+                            or (licenseType = 1 and expireTime > date_add(now(), INTERVAL 3 MONTH))
+                    )
+        ]]>
+    </sql>
+
+    <sql id="license_status_about_to_expire">
+        <![CDATA[
+        and (
+                    (licenseType = 0 and expireTime < date_add(now(), INTERVAL 10 day) and expireTime > now())
+                            or (licenseType = 1 and expireTime < date_add(now(), INTERVAL 3 MONTH) and expireTime > now())
+                    )
+        ]]>
+    </sql>
+
+    <sql id="license_status_expired">
+        and expireTime <![CDATA[<]]> now()
+    </sql>
+
+    <select id="getAgentTypeLicenseStatus" resultType="com.dbapp.xdr.bean.dto.LicenseStatusDto">
+        select tsat.agent_type, tsal.expire_time, tsal.license_type
+        from t_sev_agent_info tsai
+                     left join t_sev_agent_type tsat on tsai.agent_type = tsat.agent_type
+                     left join t_sev_agent_license tsal on tsai.agent_code = tsal.agent_code
+    </select>
+
+    <select id="getXdrDeviceByAgentCode" resultType="com.dbapp.xdr.bean.dto.XdrDeviceDetailDto">
+        select tmp.* from (
+            <include refid="detailView">
+            </include>
+        ) tmp
+        where tmp.agentCode = #{request.agentCode,jdbcType=VARCHAR}
+    </select>
+
+    <sql id="detailView">
+        select detail.*,
+        @rank := @rank + 1 as `no`
+        from (
+            select agentCode,singleLoginUri, agentName, agentType, agentIp, machineCode, orgId, orgName, cpuUsage, memoryTotal, memoryUse, memoryRadio, diskTotal, diskUse, diskRadio, status, registTime, metric3, softVersion, ruleVersion, fileName, expireTime, licenseType, offlineTime
+            from t_sev_agent_detail_view
+            <include refid="query"/>
+            order by ${orderSql}
+        ) detail,(SELECT @rank := 0) rn
+    </sql>
+
+    <select id="getXdrDeviceByNo" resultType="com.dbapp.xdr.bean.dto.XdrDeviceDetailDto">
+        select tmp.* from (
+        <include refid="detailView">
+        </include>
+        ) tmp
+        where tmp.no = #{no}
+    </select>
+</mapper>

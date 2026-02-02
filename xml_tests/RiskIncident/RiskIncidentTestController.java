@@ -2,8 +2,12 @@ package com.test.controller;
 
 import com.dbapp.extension.xdr.threatMonitor.mapper.RiskIncidentMapper;
 import com.dbapp.extension.xdr.threatMonitor.entity.RiskIncident;
+import com.dbapp.extension.xdr.entity.CommonFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.joda.time.DateTime;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -11,7 +15,7 @@ import java.util.*;
  * 主表：t_risk_incidents
  * 关联表：t_event_template, t_query_template, t_security_incidents
  * 测试方法数：30
- * 生成时间：2026-01-28
+ * 生成时间：2026-01-30 (已根据项目反编译的真实Mapper接口完全修复)
  */
 @RestController
 @RequestMapping("/test/riskIncident")
@@ -21,24 +25,22 @@ public class RiskIncidentTestController {
 
     /**
      * 方法1：aggClueSecurityEventByName
-     * 测试条件：
-     * - <include refid="timeByParam"/>（时间参数）
-     * - <include refid="queryParamCondition"/>（查询条件）
-     * - JOIN t_event_template (tet.incident_type = true)
-     * - JOIN t_security_incidents
-     * - GROUP BY event_name, t.focus
+     * 参数：startTime, endTime, topEventType, threatSeverity, alarmResults, excludeEventIds (6个)
      */
     @GetMapping("/testAggClueSecurityEventByName")
     public String testAggClueSecurityEventByName() {
         try {
             System.out.println("测试: aggClueSecurityEventByName - 聚合线索安全事件");
-            Map<String, Object> params = new HashMap<>();
-            params.put("startTime", "2026-01-25 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
-            params.put("threatSeverity", Arrays.asList("High", "Medium"));
-            params.put("subCategory", Arrays.asList("持续性威胁", "勒索软件"));
             
-            List<RiskIncident> list = mapper.aggClueSecurityEventByName(params);
+            List<RiskIncident> list = mapper.aggClueSecurityEventByName(
+                "2026-01-25 00:00:00",      // var1: startTime
+                "2026-01-30 23:59:59",      // var2: endTime
+                "高级威胁",                  // var3: topEventType
+                Arrays.asList("High", "Medium"),  // var4: threatSeverity
+                Arrays.asList("OK", "FAIL"),      // var5: alarmResults
+                Arrays.asList(5001L, 5002L)       // var6: excludeEventIds
+            );
+            
             System.out.println("结果: 查询到 " + list.size() + " 条聚合数据");
             if (!list.isEmpty()) {
                 RiskIncident first = list.get(0);
@@ -55,23 +57,22 @@ public class RiskIncidentTestController {
 
     /**
      * 方法2：mappingNormalSecurityEvent
-     * 测试条件：
-     * - <include refid="timeByParam"/>（时间参数）
-     * - <include refid="queryParamCondition"/>（查询条件）
-     * - JOIN t_event_template (tet.incident_type = false)
-     * - JOIN t_security_incidents
+     * 参数：startTime, endTime, topEventType, threatSeverity, alarmResults, excludeEventIds (6个)
      */
     @GetMapping("/testMappingNormalSecurityEvent")
     public String testMappingNormalSecurityEvent() {
         try {
             System.out.println("测试: mappingNormalSecurityEvent - 映射普通安全事件");
-            Map<String, Object> params = new HashMap<>();
-            params.put("startTime", "2026-01-25 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
-            params.put("threatSeverity", Arrays.asList("High"));
-            params.put("focusIp", "192.168.10.50");
             
-            List<RiskIncident> list = mapper.mappingNormalSecurityEvent(params);
+            List<RiskIncident> list = mapper.mappingNormalSecurityEvent(
+                "2026-01-25 00:00:00",   // var1: startTime
+                "2026-01-30 23:59:59",   // var2: endTime
+                null,                     // var3: topEventType (可选)
+                Arrays.asList("High"),    // var4: threatSeverity
+                Arrays.asList("OK"),      // var5: alarmResults
+                null                      // var6: excludeEventIds (可选)
+            );
+            
             System.out.println("结果: 查询到 " + list.size() + " 条普通事件");
             return "SUCCESS: " + list.size();
         } catch (Exception e) {
@@ -84,21 +85,19 @@ public class RiskIncidentTestController {
 
     /**
      * 方法3：backUpLastTermData
-     * 测试条件：
-     * - 插入历史数据到 t_risk_incidents_history
-     * - 根据 currentDate 筛选
+     * 参数：currentDate (String), timestamp (DateTime)
      */
     @GetMapping("/testBackUpLastTermData")
     public String testBackUpLastTermData() {
         try {
             System.out.println("测试: backUpLastTermData - 备份上一期数据");
-            Map<String, Object> params = new HashMap<>();
-            params.put("timestamp", new Date());
-            params.put("currentDate", "2026-01-28");
             
-            int count = mapper.backUpLastTermData(params);
-            System.out.println("结果: 备份了 " + count + " 条数据");
-            return "SUCCESS: " + count;
+            String currentDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            DateTime timestamp = DateTime.now();
+            
+            mapper.backUpLastTermData(currentDate, timestamp);
+            System.out.println("结果: 备份成功");
+            return "SUCCESS: backup completed";
         } catch (Exception e) {
             String errorMsg = "测试方法 testBackUpLastTermData 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
@@ -109,51 +108,27 @@ public class RiskIncidentTestController {
 
     /**
      * 方法4：batchInsertOrUpdateIncident
-     * 测试条件：
-     * - <foreach collection="riskIncidentList">
-     * - ON CONFLICT (event_code) DO UPDATE
-     * - 批量插入或更新风险事件
+     * 参数：riskIncidentList (List<RiskIncident>)
      */
     @GetMapping("/testBatchInsertOrUpdateIncident")
     public String testBatchInsertOrUpdateIncident() {
         try {
-            System.out.println("测试: batchInsertOrUpdateIncident - 批量插入或更新");
+            System.out.println("测试: batchInsertOrUpdateIncident - 批量插入或更新风险事件");
+            
             List<RiskIncident> list = new ArrayList<>();
-            
-            RiskIncident incident1 = new RiskIncident();
-            incident1.setEventCode("RISK-TEST-001");
-            incident1.setName("测试APT攻击");
-            incident1.setTemplateId("2001");
-            incident1.setThreatSeverity("High");
-            incident1.setTopEventTypeChinese("高级威胁");
-            incident1.setSecondEventTypeChinese("APT攻击");
-            incident1.setFocusIp("192.168.1.100");
-            incident1.setFocusObject("victim");
-            incident1.setCounts(5);
-            incident1.setAlarmStatus("unprocessed");
-            incident1.setAlarmResults("OK");
-            incident1.setDataSource("alert");
-            incident1.setIsScenario(1);
-            list.add(incident1);
-            
-            RiskIncident incident2 = new RiskIncident();
-            incident2.setEventCode("RISK-TEST-002");
-            incident2.setName("测试勒索软件");
-            incident2.setTemplateId("2002");
-            incident2.setThreatSeverity("High");
-            incident2.setTopEventTypeChinese("恶意软件");
-            incident2.setSecondEventTypeChinese("勒索软件");
-            incident2.setFocusIp("192.168.2.200");
-            incident2.setFocusObject("victim");
-            incident2.setCounts(3);
-            incident2.setAlarmStatus("processing");
-            incident2.setAlarmResults("FAIL");
-            incident2.setDataSource("incident");
-            incident2.setIsScenario(0);
-            list.add(incident2);
+            RiskIncident incident = new RiskIncident();
+            incident.setEventCode("TEST_CODE_001");
+            incident.setName("测试风险事件");
+            incident.setTemplateId(2001);
+            incident.setThreatSeverity("High");
+            incident.setStartTime("2026-01-30 10:00:00");
+            incident.setEndTime("2026-01-30 11:00:00");
+            incident.setAlarmStatus("unprocessed");
+            incident.setAlarmResults("OK");
+            list.add(incident);
             
             mapper.batchInsertOrUpdateIncident(list);
-            System.out.println("结果: 成功批量插入/更新 " + list.size() + " 条数据");
+            System.out.println("结果: 批量插入/更新 " + list.size() + " 条数据");
             return "SUCCESS: " + list.size();
         } catch (Exception e) {
             String errorMsg = "测试方法 testBatchInsertOrUpdateIncident 执行失败";
@@ -164,63 +139,21 @@ public class RiskIncidentTestController {
     }
 
     /**
-     * 方法5：deleteOldIncidentAnalysis
-     * 测试条件：
-     * - DELETE FROM t_risk_incidents_analysis
-     * - create_time < CURRENT_TIMESTAMP - INTERVAL 'days'
-     */
-    @GetMapping("/testDeleteOldIncidentAnalysis")
-    public String testDeleteOldIncidentAnalysis() {
-        try {
-            System.out.println("测试: deleteOldIncidentAnalysis - 删除旧分析数据");
-            int days = 30;
-            int count = mapper.deleteOldIncidentAnalysis(days);
-            System.out.println("结果: 删除了 " + count + " 条分析数据 (超过 " + days + " 天)");
-            return "SUCCESS: " + count;
-        } catch (Exception e) {
-            String errorMsg = "测试方法 testDeleteOldIncidentAnalysis 执行失败";
-            System.err.println(errorMsg + ": " + e.getMessage());
-            e.printStackTrace();
-            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
-        }
-    }
-
-    /**
-     * 方法6：deleteOldIncident
-     * 测试条件：
-     * - DELETE FROM t_risk_incidents
-     * - create_time < CURRENT_TIMESTAMP - INTERVAL 'days'
-     */
-    @GetMapping("/testDeleteOldIncident")
-    public String testDeleteOldIncident() {
-        try {
-            System.out.println("测试: deleteOldIncident - 删除旧风险事件");
-            int days = 30;
-            int count = mapper.deleteOldIncident(days);
-            System.out.println("结果: 删除了 " + count + " 条风险事件 (超过 " + days + " 天)");
-            return "SUCCESS: " + count;
-        } catch (Exception e) {
-            String errorMsg = "测试方法 testDeleteOldIncident 执行失败";
-            System.err.println(errorMsg + ": " + e.getMessage());
-            e.printStackTrace();
-            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
-        }
-    }
-
-    /**
-     * 方法7：selectOldIncidentByCodes
-     * 测试条件：
-     * - <foreach collection="list" item="code">
-     * - event_code in (codes)
-     * - create_time < CURRENT_TIMESTAMP - INTERVAL 'days'
+     * 方法5：selectOldIncidentByCodes
+     * 参数：currentDate, excludeEventCodes
      */
     @GetMapping("/testSelectOldIncidentByCodes")
     public String testSelectOldIncidentByCodes() {
         try {
-            System.out.println("测试: selectOldIncidentByCodes - 根据event_code查询旧事件");
-            List<String> codes = Arrays.asList("RISK-2026-001", "RISK-2026-002", "RISK-2026-003");
-            List<Long> ids = mapper.selectOldIncidentByCodes(codes);
-            System.out.println("结果: 查询到 " + ids.size() + " 条旧事件ID");
+            System.out.println("测试: selectOldIncidentByCodes - 根据代码选择旧事件");
+            
+            String currentDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            
+            List<Long> ids = mapper.selectOldIncidentByCodes(
+                currentDate,
+                Arrays.asList("EXCLUDE_001", "EXCLUDE_002")
+            );
+            System.out.println("结果: 查询到 " + ids.size() + " 个旧事件ID");
             return "SUCCESS: " + ids.size();
         } catch (Exception e) {
             String errorMsg = "测试方法 testSelectOldIncidentByCodes 执行失败";
@@ -231,55 +164,85 @@ public class RiskIncidentTestController {
     }
 
     /**
-     * 方法8：getRiskList - 最复杂查询方法
-     * 测试条件：
-     * - <if test="name != null and name != ''">（名称模糊查询）
-     * - <if test="threatSeverity != null and threatSeverity.size() != null">（威胁等级）
-     * - <if test="subCategory != null and subCategory.size() != null">（子类别）
-     * - <if test="focusObject != null and focusObject != ''">（关注对象）
-     * - <if test="isScenario != null">（是否符合追溯条件）
-     * - <if test="focusIp != null and focusIp != ''">（关注IP）
-     * - <if test="alarmResult != null and alarmResult.size() != null">（攻击结果）
-     * - <if test="alarmStatus != null and alarmStatus.size() != null">（处置状态）
-     * - <if test="startTime != null and startTime != ''">（开始时间）
-     * - <if test="endTime != null and endTime != ''">（结束时间）
-     * - <if test="topCategory != null and topCategory.size() != null">（一级类别）
-     * - <choose><when orderByStr == null>（排序选择）
-     * - LEFT JOIN t_alarm_status_timing_task
-     * - LEFT JOIN t_risk_incidents_analysis
+     * 方法6：deleteOldIncident
+     * 参数：currentDate, excludeEventCodes
+     */
+    @GetMapping("/testDeleteOldIncident")
+    public String testDeleteOldIncident() {
+        try {
+            System.out.println("测试: deleteOldIncident - 删除旧的风险事件");
+            
+            String currentDate = "2026-01-29";  // 使用昨天的日期
+            
+            mapper.deleteOldIncident(
+                currentDate,
+                Arrays.asList("KEEP_CODE_001")
+            );
+            System.out.println("结果: 删除成功");
+            return "SUCCESS: deleted";
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testDeleteOldIncident 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 方法7：deleteOldIncidentAnalysis
+     * 参数：currentDate, excludeEventCodes
+     */
+    @GetMapping("/testDeleteOldIncidentAnalysis")
+    public String testDeleteOldIncidentAnalysis() {
+        try {
+            System.out.println("测试: deleteOldIncidentAnalysis - 删除旧的风险事件分析");
+            
+            String currentDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            
+            mapper.deleteOldIncidentAnalysis(
+                currentDate,
+                Arrays.asList("KEEP_CODE_001", "KEEP_CODE_002")
+            );
+            System.out.println("结果: 删除成功");
+            return "SUCCESS: deleted";
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testDeleteOldIncidentAnalysis 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 方法8：getRiskList
+     * 参数：orderByStr, name, endTime, subCategory, alarmStatus, alarmResult, judgeResults, 
+     *       threatSeverity, focusObject, focusIp, startTime, isScenario, size, offSet, tagSearch, killChain (16个)
      */
     @GetMapping("/testGetRiskList")
     public String testGetRiskList() {
         try {
-            System.out.println("测试: getRiskList - 综合查询所有条件");
-            Map<String, Object> params = new HashMap<>();
+            System.out.println("测试: getRiskList - 获取风险事件列表");
             
-            // 测试所有11个条件参数
-            params.put("name", "APT");
-            params.put("threatSeverity", Arrays.asList("High", "Medium"));
-            params.put("subCategory", Arrays.asList("持续性威胁", "勒索软件"));
-            params.put("focusObject", "victim");
-            params.put("isScenario", 1);
-            params.put("focusIp", "192.168");
-            params.put("alarmResult", Arrays.asList("OK", "FAIL"));
-            params.put("alarmStatus", Arrays.asList("unprocessed", "processing"));
-            params.put("startTime", "2026-01-25 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
-            params.put("topCategory", Arrays.asList("高级威胁", "恶意软件"));
+            List<Map<String, Object>> list = mapper.getRiskList(
+                "end_time desc",              // var1: orderByStr
+                "APT",                        // var2: name
+                "2026-01-30 23:59:59",       // var3: endTime
+                Arrays.asList("持续性威胁", "勒索软件"),  // var4: subCategory（使用实际值）
+                Arrays.asList("unprocessed", "processing"),  // var5: alarmStatus
+                Arrays.asList("OK"),          // var6: alarmResult
+                Arrays.asList("1", "2"),      // var7: judgeResults（整数字符串）
+                Arrays.asList("High", "Medium"),  // var8: threatSeverity
+                "attacker",                   // var9: focusObject
+                "192.168",                    // var10: focusIp
+                "2026-01-25 00:00:00",       // var11: startTime
+                1,                            // var12: isScenario
+                10L,                          // var13: size
+                0L,                           // var14: offSet
+                Arrays.asList("APT", "恶意软件"),  // var15: tagSearch
+                Arrays.asList("侦察", "武器化")    // var16: killChain
+            );
             
-            // 测试自定义排序
-            params.put("orderByStr", "ri.create_time DESC");
-            
-            // 分页参数
-            params.put("pageNum", 1);
-            params.put("pageSize", 10);
-            
-            List<Map<String, Object>> list = mapper.getRiskList(params);
             System.out.println("结果: 查询到 " + list.size() + " 条风险事件");
-            if (!list.isEmpty()) {
-                Map<String, Object> first = list.get(0);
-                System.out.println("样例: name=" + first.get("name") + ", threatSeverity=" + first.get("threatSeverity"));
-            }
             return "SUCCESS: " + list.size();
         } catch (Exception e) {
             String errorMsg = "测试方法 testGetRiskList 执行失败";
@@ -291,24 +254,29 @@ public class RiskIncidentTestController {
 
     /**
      * 方法9：getCountByStatus
-     * 测试条件：
-     * - GROUP BY alarm_status
-     * - <if test="startTime">
-     * - <if test="endTime">
+     * 参数：startTime, endTime, eventName, focusIp, focusObject, secondEventTypeChinese, 
+     *       alarmStatus, alarmResult, judgeResults, threatSeverity, isScenario (11个)
      */
     @GetMapping("/testGetCountByStatus")
     public String testGetCountByStatus() {
         try {
             System.out.println("测试: getCountByStatus - 按状态统计数量");
-            Map<String, Object> params = new HashMap<>();
-            params.put("startTime", "2026-01-25 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
             
-            List<Map<String, Object>> list = mapper.getCountByStatus(params);
-            System.out.println("结果: 统计到 " + list.size() + " 种状态");
-            for (Map<String, Object> item : list) {
-                System.out.println("状态: " + item.get("alarmStatus") + " = " + item.get("count"));
-            }
+            List<Map> list = mapper.getCountByStatus(
+                "2026-01-25 00:00:00",  // var1: startTime
+                "2026-01-30 23:59:59",  // var2: endTime
+                null,                   // var3: eventName（设为null以匹配更多数据）
+                null,                   // var4: focusIp（设为null）
+                null,                   // var5: focusObject（设为null）
+                Arrays.asList("持续性威胁", "勒索软件", "Pass-the-Hash"),  // var6: secondEventTypeChinese（使用实际值）
+                Arrays.asList("unprocessed", "processing"),  // var7: alarmStatus
+                Arrays.asList("OK"),    // var8: alarmResult
+                Arrays.asList("1", "2"),  // var9: judgeResults（整数字符串）
+                Arrays.asList("High"),  // var10: threatSeverity
+                1                       // var11: isScenario
+            );
+            
+            System.out.println("结果: 统计了 " + list.size() + " 种状态");
             return "SUCCESS: " + list.size();
         } catch (Exception e) {
             String errorMsg = "测试方法 testGetCountByStatus 执行失败";
@@ -320,17 +288,17 @@ public class RiskIncidentTestController {
 
     /**
      * 方法10：getByEventCode
-     * 测试条件：
-     * - WHERE event_code = #{eventCode}
+     * 参数：eventCode
+     * 返回：单个Map对象（不是List）
      */
     @GetMapping("/testGetByEventCode")
     public String testGetByEventCode() {
         try {
-            System.out.println("测试: getByEventCode - 根据事件编号查询");
-            String eventCode = "RISK-2026-001";
-            List<Map<String, Object>> list = mapper.getByEventCode(eventCode);
-            System.out.println("结果: 查询到 " + list.size() + " 条数据 (eventCode=" + eventCode + ")");
-            return "SUCCESS: " + list.size();
+            System.out.println("测试: getByEventCode - 根据事件代码获取");
+            
+            Map<String, Object> result = mapper.getByEventCode("RISK_2026_001");
+            System.out.println("结果: " + (result != null ? "查询成功" : "无数据"));
+            return "SUCCESS: " + (result != null ? "1" : "0");
         } catch (Exception e) {
             String errorMsg = "测试方法 testGetByEventCode 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
@@ -341,18 +309,21 @@ public class RiskIncidentTestController {
 
     /**
      * 方法11：selectEventAndTempById
-     * 测试条件：
-     * - LEFT JOIN t_query_template ON template_id = qt.template_code
-     * - WHERE id = #{id}
+     * 参数：ids (Integer[]数组，不是List)
      */
     @GetMapping("/testSelectEventAndTempById")
     public String testSelectEventAndTempById() {
         try {
-            System.out.println("测试: selectEventAndTempById - 根据ID查询事件及模板");
-            int id = 1001;
-            Map<String, Object> result = mapper.selectEventAndTempById(id);
-            System.out.println("结果: 查询成功, name=" + (result != null ? result.get("name") : "null"));
-            return "SUCCESS: " + (result != null ? "查到数据" : "未找到");
+            System.out.println("测试: selectEventAndTempById - 根据ID选择事件和模板");
+            
+            Integer[] ids = new Integer[]{1001, 1002, 1003};
+            Map<String, Object> result = mapper.selectEventAndTempById(ids);
+            
+            System.out.println("结果: " + (result != null ? "查询成功" : "无数据"));
+            if (result != null) {
+                System.out.println("  eventCode: " + result.get("eventCode"));
+            }
+            return "SUCCESS: " + (result != null ? "1" : "0");
         } catch (Exception e) {
             String errorMsg = "测试方法 testSelectEventAndTempById 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
@@ -363,19 +334,17 @@ public class RiskIncidentTestController {
 
     /**
      * 方法12：selectAllByIdList
-     * 测试条件：
-     * - <foreach collection="list" item="id">
-     * - LEFT JOIN t_query_template
-     * - LEFT JOIN t_event_template
-     * - id in (ids)
+     * 参数：evenIdList (List<String>，不是List<Integer>)
      */
     @GetMapping("/testSelectAllByIdList")
     public String testSelectAllByIdList() {
         try {
-            System.out.println("测试: selectAllByIdList - 根据ID列表查询详情");
-            List<Integer> ids = Arrays.asList(1001, 1002, 1003, 1004, 1005);
-            List<Map<String, Object>> list = mapper.selectAllByIdList(ids);
-            System.out.println("结果: 查询到 " + list.size() + " 条详情数据");
+            System.out.println("测试: selectAllByIdList - 根据ID列表选择所有");
+            
+            List<Map<String, Object>> list = mapper.selectAllByIdList(
+                Arrays.asList("1001", "1002", "1003")
+            );
+            System.out.println("结果: 查询到 " + list.size() + " 条记录");
             return "SUCCESS: " + list.size();
         } catch (Exception e) {
             String errorMsg = "测试方法 testSelectAllByIdList 执行失败";
@@ -387,27 +356,28 @@ public class RiskIncidentTestController {
 
     /**
      * 方法13：queryEventCount
-     * 测试条件：
-     * - <if test="threatSeverity != null">
-     * - <if test="subCategory != null">
-     * - <if test="focusIp != null">
-     * - <if test="startTime != null">
-     * - <if test="endTime != null">
-     * - GROUP BY top_event_type_chinese, second_event_type_chinese
+     * 参数：11个（与getCountByStatus相同）
      */
     @GetMapping("/testQueryEventCount")
     public String testQueryEventCount() {
         try {
-            System.out.println("测试: queryEventCount - 查询事件统计");
-            Map<String, Object> params = new HashMap<>();
-            params.put("threatSeverity", Arrays.asList("High", "Medium"));
-            params.put("subCategory", Arrays.asList("持续性威胁", "勒索软件"));
-            params.put("focusIp", "192.168");
-            params.put("startTime", "2026-01-25 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            System.out.println("测试: queryEventCount - 查询事件数量");
             
-            List<Map<String, Object>> list = mapper.queryEventCount(params);
-            System.out.println("结果: 统计到 " + list.size() + " 组事件类型");
+            List<Map> list = mapper.queryEventCount(
+                "2026-01-25 00:00:00",
+                "2026-01-30 23:59:59",
+                null,  // eventName
+                null,  // focusIp
+                null,  // focusObject
+                Arrays.asList("持续性威胁", "勒索软件"),  // secondEventTypeChinese（使用实际值）
+                null,  // alarmStatus
+                null,  // alarmResult
+                Arrays.asList("1", "2"),  // judgeResults（整数字符串）
+                Arrays.asList("High", "Medium"),  // threatSeverity
+                null   // isScenario
+            );
+            
+            System.out.println("结果: 统计了 " + list.size() + " 种威胁等级的数量");
             return "SUCCESS: " + list.size();
         } catch (Exception e) {
             String errorMsg = "测试方法 testQueryEventCount 执行失败";
@@ -419,24 +389,28 @@ public class RiskIncidentTestController {
 
     /**
      * 方法14：queryIncidentsCount
-     * 测试条件：
-     * - <if test="topCategory != null">
-     * - <if test="subCategory != null">
-     * - <if test="startTime != null">
-     * - <if test="endTime != null">
+     * 参数：11个
      */
     @GetMapping("/testQueryIncidentsCount")
     public String testQueryIncidentsCount() {
         try {
-            System.out.println("测试: queryIncidentsCount - 查询事件数量统计");
-            Map<String, Object> params = new HashMap<>();
-            params.put("topCategory", Arrays.asList("高级威胁", "恶意软件"));
-            params.put("subCategory", Arrays.asList("持续性威胁", "勒索软件"));
-            params.put("startTime", "2026-01-25 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            System.out.println("测试: queryIncidentsCount - 查询事件统计");
             
-            List<Map<String, Object>> list = mapper.queryIncidentsCount(params);
-            System.out.println("结果: 统计数据 " + list.size() + " 条");
+            List<CommonFilter> list = mapper.queryIncidentsCount(
+                "2026-01-25 00:00:00",
+                "2026-01-30 23:59:59",
+                null,  // eventName
+                null,  // focusIp
+                null,  // focusObject
+                Arrays.asList("邮件钓鱼", "勒索软件", "Pass-the-Hash"),  // secondEventTypeChinese（使用实际值）
+                null,  // alarmStatus
+                null,  // alarmResult
+                Arrays.asList("1", "2", "3"),  // judgeResults（整数字符串）
+                null,  // threatSeverity
+                null   // isScenario
+            );
+            
+            System.out.println("结果: 统计了 " + list.size() + " 种事件类型");
             return "SUCCESS: " + list.size();
         } catch (Exception e) {
             String errorMsg = "测试方法 testQueryIncidentsCount 执行失败";
@@ -448,25 +422,28 @@ public class RiskIncidentTestController {
 
     /**
      * 方法15：queryKillChains
-     * 测试条件：
-     * - DISTINCT kill_chain
-     * - <if test="startTime">
-     * - <if test="endTime">
-     * - kill_chain != '' and kill_chain is not null
+     * 参数：11个
      */
     @GetMapping("/testQueryKillChains")
     public String testQueryKillChains() {
         try {
-            System.out.println("测试: queryKillChains - 查询所有杀伤链");
-            Map<String, Object> params = new HashMap<>();
-            params.put("startTime", "2026-01-25 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            System.out.println("测试: queryKillChains - 查询攻击链");
             
-            List<String> list = mapper.queryKillChains(params);
-            System.out.println("结果: 查询到 " + list.size() + " 条杀伤链");
-            for (String killChain : list) {
-                System.out.println("杀伤链: " + killChain);
-            }
+            List<String> list = mapper.queryKillChains(
+                "2026-01-25 00:00:00",
+                "2026-01-30 23:59:59",
+                null,  // eventName
+                null,  // focusIp
+                null,  // focusObject
+                Arrays.asList("持续性威胁", "DDoS攻击"),  // secondEventTypeChinese（使用实际值）
+                null,  // alarmStatus
+                null,  // alarmResult
+                Arrays.asList("1", "2"),  // judgeResults（整数字符串）
+                Arrays.asList("High"),  // threatSeverity
+                1  // isScenario = 1
+            );
+            
+            System.out.println("结果: 查询到 " + list.size() + " 个攻击链");
             return "SUCCESS: " + list.size();
         } catch (Exception e) {
             String errorMsg = "测试方法 testQueryKillChains 执行失败";
@@ -478,16 +455,15 @@ public class RiskIncidentTestController {
 
     /**
      * 方法16：getEventIdsById
-     * 测试条件：
-     * - SELECT event_ids FROM t_risk_incidents WHERE id = #{id}
+     * 参数：id (int基本类型)
      */
     @GetMapping("/testGetEventIdsById")
     public String testGetEventIdsById() {
         try {
-            System.out.println("测试: getEventIdsById - 根据ID获取事件ID列表");
-            int id = 1001;
-            String eventIds = mapper.getEventIdsById(id);
-            System.out.println("结果: eventIds=" + eventIds);
+            System.out.println("测试: getEventIdsById - 根据ID获取事件IDs");
+            
+            String eventIds = mapper.getEventIdsById(1001);
+            System.out.println("结果: " + (eventIds != null ? eventIds : "null"));
             return "SUCCESS: " + (eventIds != null ? eventIds : "null");
         } catch (Exception e) {
             String errorMsg = "测试方法 testGetEventIdsById 执行失败";
@@ -499,17 +475,18 @@ public class RiskIncidentTestController {
 
     /**
      * 方法17：getFilterContent
-     * 测试条件：
-     * - SELECT filter_content FROM t_risk_incidents WHERE id = #{id}
+     * 参数：id (Integer[]数组)
      */
     @GetMapping("/testGetFilterContent")
     public String testGetFilterContent() {
         try {
-            System.out.println("测试: getFilterContent - 根据ID获取过滤条件");
-            int id = 1001;
-            String filterContent = mapper.getFilterContent(id);
-            System.out.println("结果: filterContent=" + filterContent);
-            return "SUCCESS: " + (filterContent != null ? filterContent : "null");
+            System.out.println("测试: getFilterContent - 获取过滤内容");
+            
+            Integer[] ids = new Integer[]{1001};
+            String content = mapper.getFilterContent(ids);
+            
+            System.out.println("结果: " + (content != null ? "长度=" + content.length() : "null"));
+            return "SUCCESS: " + (content != null ? "存在" : "null");
         } catch (Exception e) {
             String errorMsg = "测试方法 testGetFilterContent 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
@@ -519,64 +496,15 @@ public class RiskIncidentTestController {
     }
 
     /**
-     * 方法18：FocusIpMessage
-     * 测试条件：
-     * - <foreach collection="list" item="ip">
-     * - focus_ip in (ips)
-     * - GROUP BY focus_ip, alarm_status
-     */
-    @GetMapping("/testFocusIpMessage")
-    public String testFocusIpMessage() {
-        try {
-            System.out.println("测试: FocusIpMessage - 根据IP列表查询消息");
-            List<String> ips = Arrays.asList("192.168.10.50", "192.168.50.1", "192.168.20.88");
-            List<Map<String, Object>> list = mapper.FocusIpMessage(ips);
-            System.out.println("结果: 查询到 " + list.size() + " 条IP消息");
-            return "SUCCESS: " + list.size();
-        } catch (Exception e) {
-            String errorMsg = "测试方法 testFocusIpMessage 执行失败";
-            System.err.println(errorMsg + ": " + e.getMessage());
-            e.printStackTrace();
-            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
-        }
-    }
-
-    /**
-     * 方法19：getFocusObject
-     * 测试条件：
-     * - SELECT DISTINCT focus_object FROM t_risk_incidents
-     * - WHERE focus_object is not null
-     */
-    @GetMapping("/testGetFocusObject")
-    public String testGetFocusObject() {
-        try {
-            System.out.println("测试: getFocusObject - 获取所有关注对象");
-            List<String> list = mapper.getFocusObject();
-            System.out.println("结果: 查询到 " + list.size() + " 种关注对象");
-            for (String obj : list) {
-                System.out.println("关注对象: " + obj);
-            }
-            return "SUCCESS: " + list.size();
-        } catch (Exception e) {
-            String errorMsg = "测试方法 testGetFocusObject 执行失败";
-            System.err.println(errorMsg + ": " + e.getMessage());
-            e.printStackTrace();
-            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
-        }
-    }
-
-    /**
-     * 方法20：getRiskListByIds
-     * 测试条件：
-     * - <foreach collection="list" item="id">
-     * - id in (ids)
+     * 方法18：getRiskListByIds
+     * 参数：ids (List<Long>)
      */
     @GetMapping("/testGetRiskListByIds")
     public String testGetRiskListByIds() {
         try {
-            System.out.println("测试: getRiskListByIds - 根据ID列表查询风险事件");
-            List<Integer> ids = Arrays.asList(1001, 1002, 1003);
-            List<RiskIncident> list = mapper.getRiskListByIds(ids);
+            System.out.println("测试: getRiskListByIds - 根据IDs获取风险列表");
+            
+            List<RiskIncident> list = mapper.getRiskListByIds(Arrays.asList(1001L, 1002L, 1003L));
             System.out.println("结果: 查询到 " + list.size() + " 条风险事件");
             return "SUCCESS: " + list.size();
         } catch (Exception e) {
@@ -588,38 +516,76 @@ public class RiskIncidentTestController {
     }
 
     /**
+     * 方法19：FocusIpMessage
+     * 参数：id, ip, size (long), offSet (long) - 注意size和offSet是基本类型long
+     */
+    @GetMapping("/testFocusIpMessage")
+    public String testFocusIpMessage() {
+        try {
+            System.out.println("测试: FocusIpMessage - 获取焦点IP消息");
+            
+            List<Map<String, Object>> list = mapper.FocusIpMessage(
+                1001,      // var1: id
+                "192.168", // var2: ip
+                10L,       // var3: size (long基本类型)
+                0L         // var5: offSet (long基本类型)
+            );
+            
+            System.out.println("结果: 查询到 " + list.size() + " 条IP消息");
+            return "SUCCESS: " + list.size();
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testFocusIpMessage 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 方法20：getFocusObject
+     * 参数：id (Integer)
+     */
+    @GetMapping("/testGetFocusObject")
+    public String testGetFocusObject() {
+        try {
+            System.out.println("测试: getFocusObject - 获取焦点对象");
+            
+            String focusObject = mapper.getFocusObject(1001);
+            System.out.println("结果: " + (focusObject != null ? focusObject : "null"));
+            return "SUCCESS: " + (focusObject != null ? focusObject : "null");
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testGetFocusObject 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
      * 方法21：getCount
-     * 测试条件：
-     * - <if test="name != null">（名称）
-     * - <if test="threatSeverity != null">（威胁等级）
-     * - <if test="subCategory != null">（子类别）
-     * - <if test="focusObject != null">（关注对象）
-     * - <if test="isScenario != null">（是否追溯）
-     * - <if test="focusIp != null">（关注IP）
-     * - <if test="alarmResult != null">（攻击结果）
-     * - <if test="alarmStatus != null">（处置状态）
-     * - <if test="startTime != null">（开始时间）
-     * - <if test="endTime != null">（结束时间）
-     * - <if test="topCategory != null">（一级类别）
+     * 参数：name, endTime, subCategory, alarmStatus, alarmResult, judgeResults, 
+     *       threatSeverity, focusObject, focusIp, startTime, tagSearch, killChain (12个)
      */
     @GetMapping("/testGetCount")
     public String testGetCount() {
         try {
-            System.out.println("测试: getCount - 查询总数（包含所有过滤条件）");
-            Map<String, Object> params = new HashMap<>();
-            params.put("name", "攻击");
-            params.put("threatSeverity", Arrays.asList("High", "Medium"));
-            params.put("subCategory", Arrays.asList("持续性威胁", "勒索软件"));
-            params.put("focusObject", "victim");
-            params.put("isScenario", 1);
-            params.put("focusIp", "192.168");
-            params.put("alarmResult", Arrays.asList("OK", "FAIL"));
-            params.put("alarmStatus", Arrays.asList("unprocessed", "processing"));
-            params.put("startTime", "2026-01-25 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
-            params.put("topCategory", Arrays.asList("高级威胁", "恶意软件"));
+            System.out.println("测试: getCount - 获取总数");
             
-            Long count = mapper.getCount(params);
+            Long count = mapper.getCount(
+                "APT",                   // var1: name
+                "2026-01-30 23:59:59",  // var2: endTime
+                Arrays.asList("持续性威胁", "勒索软件"),  // var3: subCategory（使用实际值）
+                Arrays.asList("unprocessed"),  // var4: alarmStatus
+                Arrays.asList("OK"),     // var5: alarmResult
+                Arrays.asList("1", "2"),  // var6: judgeResults（整数字符串）
+                Arrays.asList("High", "Medium"),  // var7: threatSeverity
+                "attacker",              // var8: focusObject
+                "192.168",               // var9: focusIp
+                "2026-01-25 00:00:00",  // var10: startTime
+                Arrays.asList("APT"),    // var11: tagSearch
+                Arrays.asList("侦察")    // var12: killChain
+            );
+            
             System.out.println("结果: 总数=" + count);
             return "SUCCESS: " + count;
         } catch (Exception e) {
@@ -632,24 +598,23 @@ public class RiskIncidentTestController {
 
     /**
      * 方法22：queryFocusIps
-     * 测试条件：
-     * - <if test="startTime">
-     * - <if test="endTime">
-     * - DISTINCT focus_ip
-     * - LIMIT #{pageSize} OFFSET (pageNum-1)*pageSize
+     * 参数：startTime, endTime, eventCode, ip, offset (long), size (long) - 6个参数
      */
     @GetMapping("/testQueryFocusIps")
     public String testQueryFocusIps() {
         try {
-            System.out.println("测试: queryFocusIps - 查询关注IP列表（分页）");
-            Map<String, Object> params = new HashMap<>();
-            params.put("startTime", "2026-01-25 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
-            params.put("pageNum", 1);
-            params.put("pageSize", 10);
+            System.out.println("测试: queryFocusIps - 查询焦点IPs");
             
-            List<Map<String, Object>> list = mapper.queryFocusIps(params);
-            System.out.println("结果: 查询到 " + list.size() + " 个关注IP");
+            List<Map<String, String>> list = mapper.queryFocusIps(
+                "2026-01-25 00:00:00",  // var1: startTime
+                "2026-01-30 23:59:59",  // var2: endTime
+                "RISK_2026_001",        // var3: eventCode
+                "192.168",              // var4: ip
+                0L,                     // var5: offset (long基本类型)
+                10L                     // var7: size (long基本类型)
+            );
+            
+            System.out.println("结果: 查询到 " + list.size() + " 个焦点IP");
             return "SUCCESS: " + list.size();
         } catch (Exception e) {
             String errorMsg = "测试方法 testQueryFocusIps 执行失败";
@@ -661,21 +626,21 @@ public class RiskIncidentTestController {
 
     /**
      * 方法23：queryFocusIpCount
-     * 测试条件：
-     * - COUNT(DISTINCT focus_ip)
-     * - <if test="startTime">
-     * - <if test="endTime">
+     * 参数：startTime, endTime, eventCode, ip - 4个参数
      */
     @GetMapping("/testQueryFocusIpCount")
     public String testQueryFocusIpCount() {
         try {
-            System.out.println("测试: queryFocusIpCount - 统计关注IP总数");
-            Map<String, Object> params = new HashMap<>();
-            params.put("startTime", "2026-01-25 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            System.out.println("测试: queryFocusIpCount - 统计焦点IP数量");
             
-            Long count = mapper.queryFocusIpCount(params);
-            System.out.println("结果: 关注IP总数=" + count);
+            Long count = mapper.queryFocusIpCount(
+                "2026-01-25 00:00:00",  // var1: startTime
+                "2026-01-30 23:59:59",  // var2: endTime
+                "RISK_2026_001",        // var3: eventCode
+                "192.168"               // var4: ip
+            );
+            
+            System.out.println("结果: 焦点IP数量=" + count);
             return "SUCCESS: " + count;
         } catch (Exception e) {
             String errorMsg = "测试方法 testQueryFocusIpCount 执行失败";
@@ -687,19 +652,25 @@ public class RiskIncidentTestController {
 
     /**
      * 方法24：getSecurityEventIdsByCondition
-     * 测试条件：
-     * - <foreach collection="list" item="id">
-     * - id in (ids)
-     * - SELECT event_ids
+     * 参数：startTime, endTime, topEventType, threatSeverity, alarmResults, excludeEventIds, eventName (7个)
      */
     @GetMapping("/testGetSecurityEventIdsByCondition")
     public String testGetSecurityEventIdsByCondition() {
         try {
-            System.out.println("测试: getSecurityEventIdsByCondition - 根据ID列表获取安全事件ID");
-            List<Integer> ids = Arrays.asList(1001, 1002, 1003);
-            List<String> eventIdsList = mapper.getSecurityEventIdsByCondition(ids);
-            System.out.println("结果: 查询到 " + eventIdsList.size() + " 条安全事件ID");
-            return "SUCCESS: " + eventIdsList.size();
+            System.out.println("测试: getSecurityEventIdsByCondition - 根据条件获取安全事件IDs");
+            
+            List<String> ids = mapper.getSecurityEventIdsByCondition(
+                "2026-01-25 00:00:00",  // var1: startTime
+                "2026-01-30 23:59:59",  // var2: endTime
+                "高级威胁",              // var3: topEventType
+                Arrays.asList("High"),   // var4: threatSeverity
+                Arrays.asList("OK"),     // var5: alarmResults
+                Arrays.asList(5001L),    // var6: excludeEventIds
+                "APT攻击"                // var7: eventName
+            );
+            
+            System.out.println("结果: 查询到 " + ids.size() + " 个安全事件ID");
+            return "SUCCESS: " + ids.size();
         } catch (Exception e) {
             String errorMsg = "测试方法 testGetSecurityEventIdsByCondition 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
@@ -710,16 +681,17 @@ public class RiskIncidentTestController {
 
     /**
      * 方法25：countByDate
-     * 测试条件：
-     * - COUNT(*) WHERE DATE(create_time) = CAST(date AS date)
+     * 参数：date
      */
     @GetMapping("/testCountByDate")
     public String testCountByDate() {
         try {
-            System.out.println("测试: countByDate - 根据日期统计数量");
-            String date = "2026-01-28";
+            System.out.println("测试: countByDate - 按日期统计");
+            
+            String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
             Integer count = mapper.countByDate(date);
-            System.out.println("结果: " + date + " 的事件数=" + count);
+            
+            System.out.println("结果: 今日事件数=" + count);
             return "SUCCESS: " + count;
         } catch (Exception e) {
             String errorMsg = "测试方法 testCountByDate 执行失败";
@@ -731,21 +703,15 @@ public class RiskIncidentTestController {
 
     /**
      * 方法26：selectIncidentForCheckScenario
-     * 测试条件：
-     * - <if test="focusIp != null">
-     * - <if test="eventCode != null">
-     * - WHERE alarm_status = 'unprocessed'
+     * 参数：无
      */
     @GetMapping("/testSelectIncidentForCheckScenario")
     public String testSelectIncidentForCheckScenario() {
         try {
-            System.out.println("测试: selectIncidentForCheckScenario - 查询待检查的追溯事件");
-            Map<String, Object> params = new HashMap<>();
-            params.put("focusIp", "192.168.10.50");
-            params.put("eventCode", "RISK-2026-001");
+            System.out.println("测试: selectIncidentForCheckScenario - 选择需要检查场景的事件");
             
-            List<RiskIncident> list = mapper.selectIncidentForCheckScenario(params);
-            System.out.println("结果: 查询到 " + list.size() + " 条待检查事件");
+            List<RiskIncident> list = mapper.selectIncidentForCheckScenario();
+            System.out.println("结果: 查询到 " + list.size() + " 条需要检查的事件");
             return "SUCCESS: " + list.size();
         } catch (Exception e) {
             String errorMsg = "测试方法 testSelectIncidentForCheckScenario 执行失败";
@@ -756,18 +722,41 @@ public class RiskIncidentTestController {
     }
 
     /**
-     * 方法27：isHandled
-     * 测试条件：
-     * - COUNT(*) WHERE event_code = #{eventCode}
-     * - AND alarm_status IN ('processed', 'falsePositives', 'ignore')
+     * 方法27：updateStatus
+     * 参数：RiskIncident对象（不是独立参数）
+     */
+    @GetMapping("/testUpdateStatus")
+    public String testUpdateStatus() {
+        try {
+            System.out.println("测试: updateStatus - 更新状态");
+            
+            RiskIncident incident = new RiskIncident();
+            incident.setEventCode("TEST_CODE_001");
+            incident.setAlarmStatus("processed");
+            
+            mapper.updateStatus(incident);
+            System.out.println("结果: 状态更新成功");
+            return "SUCCESS: updated";
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testUpdateStatus 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 方法28：isHandled
+     * 参数：eventCodes (List<String>)
+     * 返回：int基本类型
      */
     @GetMapping("/testIsHandled")
     public String testIsHandled() {
         try {
-            System.out.println("测试: isHandled - 检查事件是否已处置");
-            String eventCode = "RISK-2026-004";
-            Integer count = mapper.isHandled(eventCode);
-            System.out.println("结果: 事件 " + eventCode + " 已处置数量=" + count);
+            System.out.println("测试: isHandled - 检查是否已处理");
+            
+            int count = mapper.isHandled(Arrays.asList("RISK_2026_001", "RISK_2026_002"));
+            System.out.println("结果: 已处理数量=" + count);
             return "SUCCESS: " + count;
         } catch (Exception e) {
             String errorMsg = "测试方法 testIsHandled 执行失败";
@@ -778,49 +767,17 @@ public class RiskIncidentTestController {
     }
 
     /**
-     * 方法28：updateStatus
-     * 测试条件：
-     * - UPDATE t_risk_incidents
-     * - SET alarm_status = #{alarmStatus}
-     * - WHERE id = #{id}
-     */
-    @GetMapping("/testUpdateStatus")
-    public String testUpdateStatus() {
-        try {
-            System.out.println("测试: updateStatus - 更新事件状态");
-            RiskIncident incident = new RiskIncident();
-            incident.setId(1003);
-            incident.setAlarmStatus("processed");
-            
-            int count = mapper.updateStatus(incident);
-            System.out.println("结果: 更新了 " + count + " 条记录");
-            return "SUCCESS: " + count;
-        } catch (Exception e) {
-            String errorMsg = "测试方法 testUpdateStatus 执行失败";
-            System.err.println(errorMsg + ": " + e.getMessage());
-            e.printStackTrace();
-            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
-        }
-    }
-
-    /**
      * 方法29：updateJudgeResults
-     * 测试条件：
-     * - UPDATE t_risk_incidents
-     * - SET judge_result = #{judgeResult}
-     * - WHERE event_code = #{eventCode}
+     * 参数：id (Long), judgeResult (Integer)
      */
     @GetMapping("/testUpdateJudgeResults")
     public String testUpdateJudgeResults() {
         try {
-            System.out.println("测试: updateJudgeResults - 更新研判结果");
-            Map<String, Object> params = new HashMap<>();
-            params.put("eventCode", "RISK-2026-003");
-            params.put("judgeResult", 1);
+            System.out.println("测试: updateJudgeResults - 更新判断结果");
             
-            int count = mapper.updateJudgeResults(params);
-            System.out.println("结果: 更新了 " + count + " 条记录");
-            return "SUCCESS: " + count;
+            mapper.updateJudgeResults(1001L, 1);
+            System.out.println("结果: 判断结果更新成功");
+            return "SUCCESS: updated";
         } catch (Exception e) {
             String errorMsg = "测试方法 testUpdateJudgeResults 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
@@ -831,27 +788,99 @@ public class RiskIncidentTestController {
 
     /**
      * 方法30：updateJudgeStatus
-     * 测试条件：
-     * - UPDATE t_risk_incidents
-     * - SET judge_status = #{judgeStatus}
-     * - WHERE event_code = #{eventCode}
+     * 参数：id (Long), judgeStatus (String)
      */
     @GetMapping("/testUpdateJudgeStatus")
     public String testUpdateJudgeStatus() {
         try {
-            System.out.println("测试: updateJudgeStatus - 更新研判方式");
-            Map<String, Object> params = new HashMap<>();
-            params.put("eventCode", "RISK-2026-005");
-            params.put("judgeStatus", "人工研判");
+            System.out.println("测试: updateJudgeStatus - 更新判断状态");
             
-            int count = mapper.updateJudgeStatus(params);
-            System.out.println("结果: 更新了 " + count + " 条记录");
-            return "SUCCESS: " + count;
+            mapper.updateJudgeStatus(1001L, "completed");
+            System.out.println("结果: 判断状态更新成功");
+            return "SUCCESS: updated";
         } catch (Exception e) {
             String errorMsg = "测试方法 testUpdateJudgeStatus 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
             return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
         }
+    }
+
+    /**
+     * 测试汇总方法 - 执行所有测试
+     */
+    @GetMapping("/testAll")
+    public String testAll() {
+        StringBuilder result = new StringBuilder("开始执行所有测试...\n\n");
+        int successCount = 0;
+        int failCount = 0;
+
+        String[] testMethods = {
+            "testAggClueSecurityEventByName", "testMappingNormalSecurityEvent", "testBackUpLastTermData",
+            "testBatchInsertOrUpdateIncident", "testSelectOldIncidentByCodes", "testDeleteOldIncident",
+            "testDeleteOldIncidentAnalysis", "testGetRiskList", "testGetCountByStatus",
+            "testGetByEventCode", "testSelectEventAndTempById", "testSelectAllByIdList",
+            "testQueryEventCount", "testQueryIncidentsCount", "testQueryKillChains",
+            "testGetEventIdsById", "testGetFilterContent", "testGetRiskListByIds",
+            "testFocusIpMessage", "testGetFocusObject", "testGetCount",
+            "testQueryFocusIps", "testQueryFocusIpCount", "testGetSecurityEventIdsByCondition",
+            "testCountByDate", "testSelectIncidentForCheckScenario", "testUpdateStatus",
+            "testIsHandled", "testUpdateJudgeResults", "testUpdateJudgeStatus"
+        };
+
+        for (int i = 0; i < testMethods.length; i++) {
+            String methodName = testMethods[i];
+            try {
+                String testResult = "";
+                switch (i) {
+                    case 0: testResult = testAggClueSecurityEventByName(); break;
+                    case 1: testResult = testMappingNormalSecurityEvent(); break;
+                    case 2: testResult = testBackUpLastTermData(); break;
+                    case 3: testResult = testBatchInsertOrUpdateIncident(); break;
+                    case 4: testResult = testSelectOldIncidentByCodes(); break;
+                    case 5: testResult = testDeleteOldIncident(); break;
+                    case 6: testResult = testDeleteOldIncidentAnalysis(); break;
+                    case 7: testResult = testGetRiskList(); break;
+                    case 8: testResult = testGetCountByStatus(); break;
+                    case 9: testResult = testGetByEventCode(); break;
+                    case 10: testResult = testSelectEventAndTempById(); break;
+                    case 11: testResult = testSelectAllByIdList(); break;
+                    case 12: testResult = testQueryEventCount(); break;
+                    case 13: testResult = testQueryIncidentsCount(); break;
+                    case 14: testResult = testQueryKillChains(); break;
+                    case 15: testResult = testGetEventIdsById(); break;
+                    case 16: testResult = testGetFilterContent(); break;
+                    case 17: testResult = testGetRiskListByIds(); break;
+                    case 18: testResult = testFocusIpMessage(); break;
+                    case 19: testResult = testGetFocusObject(); break;
+                    case 20: testResult = testGetCount(); break;
+                    case 21: testResult = testQueryFocusIps(); break;
+                    case 22: testResult = testQueryFocusIpCount(); break;
+                    case 23: testResult = testGetSecurityEventIdsByCondition(); break;
+                    case 24: testResult = testCountByDate(); break;
+                    case 25: testResult = testSelectIncidentForCheckScenario(); break;
+                    case 26: testResult = testUpdateStatus(); break;
+                    case 27: testResult = testIsHandled(); break;
+                    case 28: testResult = testUpdateJudgeResults(); break;
+                    case 29: testResult = testUpdateJudgeStatus(); break;
+                }
+
+                if (testResult.startsWith("SUCCESS")) {
+                    result.append("✓ ").append(methodName).append(": ").append(testResult).append("\n");
+                    successCount++;
+                } else {
+                    result.append("✗ ").append(methodName).append(": ").append(testResult).append("\n");
+                    failCount++;
+                }
+            } catch (Exception e) {
+                result.append("✗ ").append(methodName).append(": ERROR - ").append(e.getMessage()).append("\n");
+                failCount++;
+            }
+        }
+
+        result.append("\n测试汇总: 成功=").append(successCount).append(", 失败=").append(failCount);
+        result.append(", 总计=").append(testMethods.length).append("\n");
+
+        return result.toString();
     }
 }

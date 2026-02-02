@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.xdr.mapper.XdrDeviceAggMapper">
+    <select id="getAgentTypeStausCount" resultType="com.dbapp.xdr.bean.dto.KeyValueCount">
+        <!--        条件一致放在一块查，少用一次io，代码里面做分类-->
+        select tsat.agent_type `name`, tsai.status `value`, count(*) `count`
+        from t_sev_agent_type tsat
+                     left join t_sev_agent_info tsai on tsai.agent_type = tsat.agent_type
+        group by tsat.agent_type, tsai.status;
+    </select>
+
+    <select id="getAgentTypeIps" resultType="com.dbapp.xdr.bean.dto.KeyValueCount">
+        set session group_concat_max_len=#{limit};
+        select tsai.agent_type `name`, group_concat(distinct tsai.agent_ip) `value`
+        from t_sev_agent_info tsai
+        where agent_type in ('AiNTA','APT', 'EDR')
+        group by tsai.agent_type;
+    </select>
+
+    <select id="getAgentTypeMetric3Sum" resultType="com.dbapp.xdr.bean.dto.KeyValueCount">
+        select tsai.agent_type `value`, sum(ifnull(tsam.metric3, 0)) `count2`
+        from t_sev_agent_info tsai
+                     left join t_sev_agent_monitor tsam on tsai.monitor_id = tsam.id
+        group by tsai.agent_type;
+    </select>
+
+    <select id="getAgentTypeCpuCount" resultType="com.dbapp.xdr.bean.dto.KeyValueCount">
+        <![CDATA[
+        select tsai.agent_type value, count(*) count
+        from t_sev_agent_info tsai
+                     left join t_sev_agent_monitor tsam on tsai.monitor_id = tsam.id
+        where exists(select 1 from t_sev_agent_monitor tsam
+                         where tsai.agent_code = tsam.agent_code
+                                and tsam.cpu_usage > #{threshold}
+                                 and create_time > date_sub(now(), INTERVAL #{minutes} + 1 minute)
+                                  having count(*) >= #{minutes})
+        group by tsai.agent_type;
+        ]]>
+    </select>
+
+    <select id="getAgentTypeMemCount" resultType="com.dbapp.xdr.bean.dto.KeyValueCount">
+        <![CDATA[
+        select tsai.agent_type `value`, count(*) `count`
+        from t_sev_agent_info tsai
+                     left join t_sev_agent_monitor tsam on tsai.monitor_id = tsam.id
+        where exists(select count(*) cnt from t_sev_agent_monitor tsam
+                         where tsai.agent_code = tsam.agent_code
+                            and tsam.memory_use / tsam.memory_total > #{threshold}
+                                 and create_time > date_sub(now(), INTERVAL #{minutes} + 1 minute)
+                                 having count(*) >= #{minutes})
+        group by tsai.agent_type
+        ]]>
+    </select>
+
+    <select id="getAgentTypeMetric1AndMetric2Sum" resultType="com.dbapp.xdr.bean.dto.HourSum">
+        select t.agent_type `name`,sum(m.metric1) `metric1`,sum(m.metric2) `metric2` from t_sev_agent_info t
+        left join t_sev_agent_monitor m on t.monitor_id = m.id
+        where t.status = 'online'
+        GROUP by t.agent_type
+    </select>
+
+    <select id="getAgentTypeMetric1Sum" resultType="com.dbapp.xdr.bean.dto.HourSum">
+        select `tsam`.agent_code   `name`,
+               MINUTE(create_time) `hour`,
+               sum(tsam.metric1)   `metric1`
+        from t_sev_agent_monitor tsam
+        where create_time <![CDATA[>]]> date_sub(now(), INTERVAL 30 MINUTE)
+        group by `tsam`.agent_code, MINUTE(create_time)
+        order by create_time desc;
+    </select>
+
+    <select id="getAgentDataMetric1" resultType="com.dbapp.xdr.bean.dto.PointSum">
+        select tmp.time `name`, ifnull(tmp.metric, 0) `metric` from (
+                select
+        <choose>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour1">
+                <include refid="hour1"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour24">
+                <include refid="hour24"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@week1">
+                <include refid="week1"/>
+            </when>
+        </choose>
+            ,tsam.metric1 `metric`
+                from t_sev_agent_monitor tsam
+                where tsam.agent_code = #{agentCode,jdbcType=VARCHAR}
+        <choose>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour1">
+                <include refid="hour1_condition"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour24">
+                <include refid="hour24_condition"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@week1">
+                <include refid="week1_condition"/>
+            </when>
+        </choose>
+        ) tmp
+                group by tmp.time;
+    </select>
+
+    <select id="getAgentDataMetric2" resultType="com.dbapp.xdr.bean.dto.PointSum">
+        select tmp.time `name`, ifnull(tmp.metric, 0) `metric` from (
+                select
+        <choose>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour1">
+                <include refid="hour1"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour24">
+                <include refid="hour24"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@week1">
+                <include refid="week1"/>
+            </when>
+        </choose>
+        ,tsam.metric2 `metric`
+                from t_sev_agent_monitor tsam
+                where tsam.agent_code = #{agentCode,jdbcType=VARCHAR}
+        <choose>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour1">
+                <include refid="hour1_condition"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour24">
+                <include refid="hour24_condition"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@week1">
+                <include refid="week1_condition"/>
+            </when>
+        </choose>
+        ) tmp
+                group by tmp.time;
+    </select>
+
+    <select id="getAgentDataMetric3" resultType="com.dbapp.xdr.bean.dto.PointSum">
+        select tmp.time `name`, ifnull(tmp.metric, 0) `metric` from (
+                select
+        <choose>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour1">
+                <include refid="hour1"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour24">
+                <include refid="hour24"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@week1">
+                <include refid="week1"/>
+            </when>
+        </choose>
+        ,tsam.metric3 `metric`
+                from t_sev_agent_monitor tsam
+                where tsam.agent_code = #{agentCode,jdbcType=VARCHAR}
+        <choose>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour1">
+                <include refid="hour1_condition"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@hour24">
+                <include refid="hour24_condition"/>
+            </when>
+            <when test="type != null and type == @com.dbapp.xdr.bean.meta.XdrTimeEnum@week1">
+                <include refid="week1_condition"/>
+            </when>
+        </choose>
+        ) tmp
+                group by tmp.time;
+    </select>
+
+    <sql id="hour1">
+        concat(date(tsam.create_time), ' ', lpad(hour(tsam.create_time), 2, '0'), ':',
+               lpad(floor(minute(tsam.create_time) / 1) * 1, 2, '0'), ':00') time
+    </sql>
+
+    <sql id="hour24">
+        <!-- 缩小分钟，扩大取值量 避免有余数 -->
+        concat(date(tsam.create_time), ' ', lpad(hour(tsam.create_time), 2,'0'), ':',
+        lpad(floor(minute(tsam.create_time) / 1 ) * 1, 2, '0'), ':00') time
+    </sql>
+
+    <sql id="week1">
+        <!-- 缩小分钟 为小时，扩大取值量 避免有余数 -->
+        concat(date(tsam.create_time), ' ', lpad(hour(tsam.create_time), 2,'0'), ':',
+        lpad(floor(minute(tsam.create_time) / 6 ) * 6, 2, '0'), ':00') time
+        <!--        concat(date(tsam.create_time), ' ', lpad(floor(hour(tsam.create_time) / 2) * 2, 2,'0'), ':00:00') time-->
+    </sql>
+
+    <sql id="hour1_condition">
+        and tsam.create_time <![CDATA[>]]> date_sub(now(), INTERVAL 1 hour)
+    </sql>
+
+    <sql id="hour24_condition">
+        and tsam.create_time <![CDATA[>]]> date_sub(now(), INTERVAL 24 hour)
+    </sql>
+
+    <sql id="week1_condition">
+        and tsam.create_time <![CDATA[>]]> date_sub(now(), INTERVAL 1 week)
+    </sql>
+
+    <select id="queryAllDeviceCount" resultType="com.dbapp.xdr.bean.dto.KeyValueCount">
+        select tsai.status `value`, count(*) count
+        from t_sev_agent_info tsai
+                     left join t_sev_agent_type tsat on tsai.agent_type = tsat.agent_type
+                     left join t_organization `to` on `to`.id = tsai.org_id
+                     left join t_sev_agent_license tsal on tsai.agent_code = tsal.agent_code
+                where 1 = 1
+        <if test="typeName != null and typeName != ''">
+            and tsai.agent_type = #{typeName,jdbcType=VARCHAR}
+        </if>
+        <if test="status != null and status != ''">
+            and tsai.status = #{status,jdbcType=VARCHAR}
+        </if>
+        <if test="deviceName != null and deviceName != ''">
+            and (tsai.agent_name LIKE concat('%', #{deviceName,jdbcType=VARCHAR}, '%') or
+                 tsai.agent_ip LIKE concat('%', #{deviceName,jdbcType=VARCHAR}, '%'))
+        </if>
+        <if test="licenseStatus != null">
+            <choose>
+                <when test="licenseStatus != null and 'EXPIRED'.equals(licenseStatus)">
+                    <include refid="license_status_expired"/>
+                </when>
+                <when test="licenseStatus != null and 'NORMAL'.equals(licenseStatus)">
+                    <include refid="license_status_normal"/>
+                </when>
+                <when test="licenseStatus != null and 'ABOUT_TO_EXPIRE'.equals(licenseStatus)">
+                    <include refid="license_status_about_to_expire"/>
+                </when>
+            </choose>
+        </if>
+        group by tsai.status
+    </select>
+
+    <sql id="license_status_normal">
+        <![CDATA[
+        and (
+                    (tsal.license_type = 0 and tsal.expire_time > date_add(now(), INTERVAL 10 day))
+                            or (tsal.license_type = 1 and tsal.expire_time > date_add(now(), INTERVAL 3 MONTH))
+                    )
+        ]]>
+    </sql>
+
+    <sql id="license_status_about_to_expire">
+        <![CDATA[
+        and (
+                    (tsal.license_type = 0 and tsal.expire_time < date_add(now(), INTERVAL 10 day) and tsal.expire_time > now())
+                            or (tsal.license_type = 1 and tsal.expire_time < date_add(now(), INTERVAL 3 MONTH) and tsal.expire_time > now())
+                    )
+        ]]>
+    </sql>
+
+    <sql id="license_status_expired">
+        and tsal.expire_time <![CDATA[<]]> now()
+    </sql>
+
+    <select id="queryTodayStatistics" resultType="long">
+        select sum(ifnull(tsam.metric3, 0))
+        from t_sev_agent_info tsai
+                     left join t_sev_agent_monitor tsam on tsai.monitor_id = tsam.id
+        where tsam.agent_type = #{agentType,jdbcType=VARCHAR}
+          and tsam.create_time between curdate() and current_timestamp()
+        group by tsai.agent_type;
+    </select>
+
+    <select id="queryTodayStatisticsByIp" resultType="java.lang.Long">
+        select sum(ifnull(tsam.metric3, 0))
+        from t_sev_agent_info tsai
+        left join t_sev_agent_monitor tsam on tsai.monitor_id = tsam.id
+        where tsam.agent_type = #{agentType,jdbcType=VARCHAR}
+        and tsai.agent_ip = #{ip,jdbcType=VARCHAR}
+        group by tsai.agent_type;
+    </select>
+</mapper>

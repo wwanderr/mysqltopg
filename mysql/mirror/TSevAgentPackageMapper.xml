@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.xdr.mapper.TSevAgentPackageMapper">
+  <resultMap id="BaseResultMap" type="com.dbapp.xdr.bean.po.TSevAgentPackage">
+    <!--@mbg.generated-->
+    <!--@Table t_sev_agent_package-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="agent_type" jdbcType="VARCHAR" property="agentType" />
+    <result column="package_type" jdbcType="VARCHAR" property="packageType" />
+    <result column="package_version" jdbcType="VARCHAR" property="packageVersion" />
+    <result column="file_uuid" jdbcType="VARCHAR" property="fileUuid" />
+    <result column="file_name" jdbcType="VARCHAR" property="fileName" />
+    <result column="upload_type" jdbcType="VARCHAR" property="uploadType" />
+    <result column="file_size" jdbcType="BIGINT" property="fileSize" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, agent_type, package_type, package_version, file_uuid, file_name, upload_type, file_size, create_time, update_time
+  </sql>
+
+  <resultMap id="PackagePair" type="org.apache.commons.lang3.tuple.MutablePair">
+    <result property="left" column="left" javaType="com.dbapp.xdr.bean.meta.PackageType"/>
+    <result property="right" column="right" javaType="String"/>
+  </resultMap>
+  <select id="getAllLastVersionByAgentType" resultMap="PackagePair">
+    select * from
+      (select package_type `left`, package_version `right` from t_sev_agent_package
+       where agent_type=#{agentType} order by update_time desc)t
+    group by t.`left`
+  </select>
+
+  <resultMap id="LongStringPair" type="org.apache.commons.lang3.tuple.MutablePair">
+    <result property="left" column="left" javaType="Long"/>
+    <result property="right" column="right" javaType="String"/>
+  </resultMap>
+  <select id="selectNotLastTwoPackage" resultMap="LongStringPair">
+    select t.id `left`, t.file_uuid `right` from t_sev_agent_package t,
+     (select update_time from t_sev_agent_package
+      where agent_type =#{agentType} AND package_type =#{packageType} order by update_time desc limit 1,1)u
+    where t.agent_type =#{agentType} AND t.package_type =#{packageType} AND t.update_time &lt; u.update_time
+  </select>
+</mapper>

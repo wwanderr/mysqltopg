@@ -1,43 +1,61 @@
 package com.test.controller;
 
 import com.dbapp.extension.xdr.threatMonitor.mapper.RiskIncidentOutGoingHistoryMapper;
-import com.dbapp.extension.xdr.threatMonitor.entity.RiskIncidentOutGoing;
+import com.dbapp.extension.xdr.threatMonitor.entity.RiskIncidentOutGoingHistory;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.sql.Timestamp;
 import java.util.*;
 
 /**
- * RiskIncidentOutGoingHistory (风险事件外发历史) 深度测试控制器
- * 主表：t_risk_incidents_out_going_history (26个字段)
- * 测试方法数：9
- * 生成时间：2026-01-28
+ * RiskIncidentOutGoingHistory 测试控制器
+ * 主表：t_risk_incidents_out_going_history
+ * Mapper: 只继承BaseMapper，测试基本CRUD方法
+ * 生成时间：2026-01-30（根据反编译接口完全修复）
  */
 @RestController
 @RequestMapping("/test/riskIncidentOutGoingHistory")
 public class RiskIncidentOutGoingHistoryTestController {
+    
     @Autowired
     private RiskIncidentOutGoingHistoryMapper mapper;
 
     /**
-     * 方法1：mappingFromClueSecurityEvent
-     * 测试条件：使用 <include refid="timeByParam"/> 和 eventIds 参数
+     * 测试1：selectById - BaseMapper提供
      */
-    @GetMapping("/test1_mappingFromClueSecurityEvent")
-    public String test1_mappingFromClueSecurityEvent() {
+    @GetMapping("/testSelectById")
+    public String testSelectById() {
         try {
-            System.out.println("测试: mappingFromClueSecurityEvent - 从线索安全事件映射");
-            Map<String, Object> params = new HashMap<>();
-            params.put("endTime", System.currentTimeMillis());
-            params.put("startTime", System.currentTimeMillis() - (7 * 24 * 3600 * 1000L));
-            params.put("eventIds", Arrays.asList("EVT-001", "EVT-002"));
+            System.out.println("测试: selectById - 根据ID查询");
             
-            List<RiskIncidentOutGoing> result = mapper.mappingFromClueSecurityEvent(params);
-            System.out.println("结果: " + result.size() + " 条");
+            RiskIncidentOutGoingHistory result = mapper.selectById(1001L);
+            System.out.println("结果: " + (result != null ? "查询成功" : "无数据"));
+            return "SUCCESS: " + (result != null ? "1" : "0");
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testSelectById 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 测试2：selectList - BaseMapper提供
+     */
+    @GetMapping("/testSelectList")
+    public String testSelectList() {
+        try {
+            System.out.println("测试: selectList - 条件查询列表");
+            
+            QueryWrapper<RiskIncidentOutGoingHistory> wrapper = new QueryWrapper<>();
+            wrapper.ge("id", 1001);  // id >= 1001
+            wrapper.le("id", 1010);  // id <= 1010
+            
+            List<RiskIncidentOutGoingHistory> result = mapper.selectList(wrapper);
+            System.out.println("结果: 查询到 " + result.size() + " 条记录");
             return "SUCCESS: " + result.size();
         } catch (Exception e) {
-            String errorMsg = "测试方法 test1_mappingFromClueSecurityEvent 执行失败";
+            String errorMsg = "测试方法 testSelectList 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
             return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
@@ -45,24 +63,42 @@ public class RiskIncidentOutGoingHistoryTestController {
     }
 
     /**
-     * 方法2：mappingNormalSecurityEvent
-     * 测试条件：使用 <include refid="timeByParam"/> 和 queryParamCondition
+     * 测试3：selectCount - BaseMapper提供
      */
-    @GetMapping("/test2_mappingNormalSecurityEvent")
-    public String test2_mappingNormalSecurityEvent() {
+    @GetMapping("/testSelectCount")
+    public String testSelectCount() {
         try {
-            System.out.println("测试: mappingNormalSecurityEvent - 从普通安全事件映射");
-            Map<String, Object> params = new HashMap<>();
-            params.put("endTime", System.currentTimeMillis());
-            params.put("startTime", System.currentTimeMillis() - (24 * 3600 * 1000L));
-            params.put("sourceList", Arrays.asList("syslog", "agent"));
-            params.put("threatSeverityList", Arrays.asList("high", "critical"));
+            System.out.println("测试: selectCount - 统计数量");
             
-            List<RiskIncidentOutGoing> result = mapper.mappingNormalSecurityEvent(params);
-            System.out.println("结果: " + result.size() + " 条");
+            QueryWrapper<RiskIncidentOutGoingHistory> wrapper = new QueryWrapper<>();
+            wrapper.like("event_code", "RISK-2026");
+            
+            Long count = mapper.selectCount(wrapper);
+            System.out.println("结果: 总数=" + count);
+            return "SUCCESS: " + count;
+        } catch (Exception e) {
+            String errorMsg = "测试方法 testSelectCount 执行失败";
+            System.err.println(errorMsg + ": " + e.getMessage());
+            e.printStackTrace();
+            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 测试4：selectBatchIds - BaseMapper提供
+     */
+    @GetMapping("/testSelectBatchIds")
+    public String testSelectBatchIds() {
+        try {
+            System.out.println("测试: selectBatchIds - 批量ID查询");
+            
+            List<RiskIncidentOutGoingHistory> result = mapper.selectBatchIds(
+                Arrays.asList(1001L, 1002L, 1003L)
+            );
+            System.out.println("结果: 查询到 " + result.size() + " 条记录");
             return "SUCCESS: " + result.size();
         } catch (Exception e) {
-            String errorMsg = "测试方法 test2_mappingNormalSecurityEvent 执行失败";
+            String errorMsg = "测试方法 testSelectBatchIds 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
             return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
@@ -70,21 +106,25 @@ public class RiskIncidentOutGoingHistoryTestController {
     }
 
     /**
-     * 方法3：backUpLastTermData
-     * 测试条件：按时间备份数据
+     * 测试5：insert - BaseMapper提供
      */
-    @GetMapping("/test3_backUpLastTermData")
-    public String test3_backUpLastTermData() {
+    @GetMapping("/testInsert")
+    public String testInsert() {
         try {
-            System.out.println("测试: backUpLastTermData - 备份上一周期数据");
-            Map<String, Object> params = new HashMap<>();
-            params.put("lastTimePart", new Timestamp(System.currentTimeMillis() - (7 * 24 * 3600 * 1000L)));
+            System.out.println("测试: insert - 插入记录");
             
-            int count = mapper.backUpLastTermData(params);
-            System.out.println("结果: 备份 " + count + " 条数据");
-            return "SUCCESS: " + count;
+            RiskIncidentOutGoingHistory history = new RiskIncidentOutGoingHistory();
+            history.setEventId(99999L);
+            history.setUniqCode("TEST-UNIQ-CODE-" + System.currentTimeMillis());
+            history.setEventCode("RISK-2026-TEST");
+            history.setName("测试外发历史记录");
+            // 设置其他必要字段...
+            
+            int rows = mapper.insert(history);
+            System.out.println("结果: 插入 " + rows + " 条记录，ID=" + history.getId());
+            return "SUCCESS: " + rows;
         } catch (Exception e) {
-            String errorMsg = "测试方法 test3_backUpLastTermData 执行失败";
+            String errorMsg = "测试方法 testInsert 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
             return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
@@ -92,46 +132,22 @@ public class RiskIncidentOutGoingHistoryTestController {
     }
 
     /**
-     * 方法4：batchInsertOrUpdateIncident
-     * 测试条件：批量插入或更新（ON CONFLICT）
+     * 测试6：updateById - BaseMapper提供
      */
-    @GetMapping("/test4_batchInsertOrUpdateIncident")
-    public String test4_batchInsertOrUpdateIncident() {
+    @GetMapping("/testUpdateById")
+    public String testUpdateById() {
         try {
-            System.out.println("测试: batchInsertOrUpdateIncident - 批量插入/更新外发历史");
-            List<RiskIncidentOutGoing> dataList = new ArrayList<>();
+            System.out.println("测试: updateById - 根据ID更新");
             
-            RiskIncidentOutGoing data1 = new RiskIncidentOutGoing();
-            data1.setEventId(20001L);
-            data1.setUniqCode("20260128-test-v1.0-10.0.0.1-001");
-            data1.setEventCode("RISK-TEST-001");
-            data1.setSecurityIncidentId(2001L);
-            data1.setName("测试攻击事件");
-            data1.setTemplateId("TEST_ATTACK");
-            data1.setStartTime(new Timestamp(System.currentTimeMillis()));
-            data1.setEndTime(new Timestamp(System.currentTimeMillis()));
-            data1.setTopEventTypeChinese("测试类型");
-            data1.setSecondEventTypeChinese("子类型");
-            data1.setDeviceAddress("192.168.100.100");
-            data1.setDeviceSendProductName("XDR测试");
-            data1.setSendHostAddress("10.0.0.1");
-            data1.setMachineCode("TEST-MACHINE-001");
-            data1.setRuleType("测试规则");
-            data1.setFocusIp("10.0.0.1");
-            data1.setAttacker("10.0.0.1");
-            data1.setVictim("10.0.0.2");
-            data1.setSeverity("5");
-            data1.setCatOutcome("OK");
-            data1.setPayload("{\"test\": \"data\"}");
-            data1.setMoreField("{\"status\": \"success\"}");
-            data1.setTimePart(new Timestamp(System.currentTimeMillis()));
-            dataList.add(data1);
+            RiskIncidentOutGoingHistory history = new RiskIncidentOutGoingHistory();
+            history.setId(1001L);
+            history.setName("更新后的名称");
             
-            mapper.batchInsertOrUpdateIncident(dataList);
-            System.out.println("结果: 插入/更新 " + dataList.size() + " 条");
-            return "SUCCESS: " + dataList.size();
+            int rows = mapper.updateById(history);
+            System.out.println("结果: 更新 " + rows + " 条记录");
+            return "SUCCESS: " + rows;
         } catch (Exception e) {
-            String errorMsg = "测试方法 test4_batchInsertOrUpdateIncident 执行失败";
+            String errorMsg = "测试方法 testUpdateById 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
             return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
@@ -139,40 +155,18 @@ public class RiskIncidentOutGoingHistoryTestController {
     }
 
     /**
-     * 方法5：deleteOldIncident
-     * 测试条件：删除30天前的历史数据
+     * 测试7：deleteById - BaseMapper提供
      */
-    @GetMapping("/test5_deleteOldIncident")
-    public String test5_deleteOldIncident() {
+    @GetMapping("/testDeleteById")
+    public String testDeleteById() {
         try {
-            System.out.println("测试: deleteOldIncident - 删除旧数据（30天前）");
-            int count = mapper.deleteOldIncident(30);
-            System.out.println("结果: 删除 " + count + " 条");
-            return "SUCCESS: " + count;
-        } catch (Exception e) {
-            String errorMsg = "测试方法 test5_deleteOldIncident 执行失败";
-            System.err.println(errorMsg + ": " + e.getMessage());
-            e.printStackTrace();
-            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
-        }
-    }
-
-    /**
-     * 方法6：queryListByTime
-     * 测试条件：按时间范围查询
-     */
-    @GetMapping("/test6_queryListByTime")
-    public String test6_queryListByTime() {
-        try {
-            System.out.println("测试: queryListByTime - 按时间范围查询");
-            String startTime = "2026-01-01 00:00:00";
-            String endTime = "2026-01-28 23:59:59";
+            System.out.println("测试: deleteById - 根据ID删除");
             
-            List<RiskIncidentOutGoing> result = mapper.queryListByTime(startTime, endTime);
-            System.out.println("结果: " + result.size() + " 条");
-            return "SUCCESS: " + result.size();
+            int rows = mapper.deleteById(9999L);  // 不存在的ID
+            System.out.println("结果: 删除 " + rows + " 条记录");
+            return "SUCCESS: " + rows;
         } catch (Exception e) {
-            String errorMsg = "测试方法 test6_queryListByTime 执行失败";
+            String errorMsg = "测试方法 testDeleteById 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
             return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
@@ -180,25 +174,21 @@ public class RiskIncidentOutGoingHistoryTestController {
     }
 
     /**
-     * 方法7：batchUpdatePayload
-     * 测试条件：批量更新payload字段
+     * 测试8：delete - 条件删除 - BaseMapper提供
      */
-    @GetMapping("/test7_batchUpdatePayload")
-    public String test7_batchUpdatePayload() {
+    @GetMapping("/testDelete")
+    public String testDelete() {
         try {
-            System.out.println("测试: batchUpdatePayload - 批量更新payload");
-            List<RiskIncidentOutGoing> dataList = new ArrayList<>();
+            System.out.println("测试: delete - 条件删除");
             
-            RiskIncidentOutGoing data1 = new RiskIncidentOutGoing();
-            data1.setUniqCode("20260128-apt-v1.0-192.168.10.50-history-001");  // test_data.sql中的数据
-            data1.setPayload("{\"batch\": 1, \"send_time\": \"2026-01-25 10:00:00\", \"updated\": true}");
-            dataList.add(data1);
+            QueryWrapper<RiskIncidentOutGoingHistory> wrapper = new QueryWrapper<>();
+            wrapper.eq("event_code", "RISK-2026-TEST");  // 删除测试数据
             
-            mapper.batchUpdatePayload(dataList);
-            System.out.println("结果: 更新 " + dataList.size() + " 条payload");
-            return "SUCCESS: " + dataList.size();
+            int rows = mapper.delete(wrapper);
+            System.out.println("结果: 删除 " + rows + " 条记录");
+            return "SUCCESS: " + rows;
         } catch (Exception e) {
-            String errorMsg = "测试方法 test7_batchUpdatePayload 执行失败";
+            String errorMsg = "测试方法 testDelete 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
             return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
@@ -206,53 +196,50 @@ public class RiskIncidentOutGoingHistoryTestController {
     }
 
     /**
-     * 方法8：clearHistoryData
-     * 测试条件：清理60天前的历史数据
+     * 测试汇总方法 - 执行所有测试
      */
-    @GetMapping("/test8_clearHistoryData")
-    public String test8_clearHistoryData() {
-        try {
-            System.out.println("测试: clearHistoryData - 清理历史数据（60天前）");
-            int count = mapper.clearHistoryData(60);
-            System.out.println("结果: 清理 " + count + " 条");
-            return "SUCCESS: " + count;
-        } catch (Exception e) {
-            String errorMsg = "测试方法 test8_clearHistoryData 执行失败";
-            System.err.println(errorMsg + ": " + e.getMessage());
-            e.printStackTrace();
-            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
-        }
-    }
+    @GetMapping("/testAll")
+    public String testAll() {
+        StringBuilder result = new StringBuilder("开始执行所有测试...\n\n");
+        int successCount = 0;
+        int failCount = 0;
 
-    /**
-     * 方法9：queryOutGoingList
-     * 测试条件：复杂查询（LEFT JOIN + 多条件）
-     */
-    @GetMapping("/test9_queryOutGoingList")
-    public String test9_queryOutGoingList() {
-        try {
-            System.out.println("测试: queryOutGoingList - 复杂查询外发列表");
-            Map<String, Object> params = new HashMap<>();
-            params.put("eventCode", "RISK-2026-002");  // 勒索软件（3条历史记录）
-            params.put("startTime", "2026-01-27 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
-            params.put("catOutcome", "OK");
-            params.put("severity", "7");
-            
-            List<Map<String, Object>> result = mapper.queryOutGoingList(params);
-            System.out.println("结果: " + result.size() + " 条");
-            if (!result.isEmpty()) {
-                Map<String, Object> first = result.get(0);
-                System.out.println("  - 事件Code: " + first.get("event_code"));
-                System.out.println("  - 事件名称: " + first.get("name"));
-                System.out.println("  - 结果: " + first.get("cat_outcome"));
+        String[] testMethods = {
+            "testSelectById", "testSelectList", "testSelectCount", "testSelectBatchIds",
+            "testInsert", "testUpdateById", "testDeleteById", "testDelete"
+        };
+
+        for (int i = 0; i < testMethods.length; i++) {
+            String methodName = testMethods[i];
+            try {
+                String testResult = "";
+                switch (i) {
+                    case 0: testResult = testSelectById(); break;
+                    case 1: testResult = testSelectList(); break;
+                    case 2: testResult = testSelectCount(); break;
+                    case 3: testResult = testSelectBatchIds(); break;
+                    case 4: testResult = testInsert(); break;
+                    case 5: testResult = testUpdateById(); break;
+                    case 6: testResult = testDeleteById(); break;
+                    case 7: testResult = testDelete(); break;
+                }
+
+                if (testResult.startsWith("SUCCESS")) {
+                    result.append("✓ ").append(methodName).append(": ").append(testResult).append("\n");
+                    successCount++;
+                } else {
+                    result.append("✗ ").append(methodName).append(": ").append(testResult).append("\n");
+                    failCount++;
+                }
+            } catch (Exception e) {
+                result.append("✗ ").append(methodName).append(": ERROR - ").append(e.getMessage()).append("\n");
+                failCount++;
             }
-            return "SUCCESS: " + result.size();
-        } catch (Exception e) {
-            String errorMsg = "测试方法 test9_queryOutGoingList 执行失败";
-            System.err.println(errorMsg + ": " + e.getMessage());
-            e.printStackTrace();
-            return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
         }
+
+        result.append("\n测试汇总: 成功=").append(successCount).append(", 失败=").append(failCount);
+        result.append(", 总计=").append(testMethods.length).append("\n");
+
+        return result.toString();
     }
 }

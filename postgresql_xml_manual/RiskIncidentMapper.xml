@@ -414,7 +414,7 @@
         END analysisStatus,
         CASE WHEN tt.associated_field IS NULL THEN FALSE ELSE TRUE END AS isAutoHandle
         from t_risk_incidents ri
-        left join t_alarm_status_timing_task tt on ri.id = tt.associated_field and task_type = 'RiskIncident'
+        left join t_alarm_status_timing_task tt on CAST(ri.id AS VARCHAR) = tt.associated_field and task_type = 'RiskIncident'
         left join t_risk_incidents_analysis ia on ri.event_code = ia.risk_incidents_event_code and "status" != 'todo'
         <where>
             <if test="name != null and name != ''">
@@ -453,7 +453,7 @@
             <if test="judgeResults != null and judgeResults.size != null">
                 and judge_result in
                 <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
-                    #{sub}
+                    CAST(#{sub} AS INTEGER)
                 </foreach>
             </if>
             <if test="alarmStatus != null and alarmStatus.size != null">
@@ -482,7 +482,7 @@
         alarm_status AS alarmStatus
         FROM
         t_risk_incidents ti
-        LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+        LEFT JOIN t_event_template tm ON CAST(ti.template_id AS BIGINT) = tm.id
         WHERE
         ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
         <if test="eventName != null and eventName != ''">
@@ -515,7 +515,7 @@
         <if test="judgeResults != null and judgeResults.size != null">
             and judge_result in
             <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
-                #{sub}
+                CAST(#{sub} AS INTEGER)
             </foreach>
         </if>
         <if test="threatSeverity != null and threatSeverity.size() != 0">
@@ -537,7 +537,7 @@
         select * from t_risk_incidents_out_going where event_code = #{eventCode}
     </select>
 
-    <select id="selectEventAndTempById" parameterType="java.lang.Integer" resultType="java.util.Map">
+    <select id="selectEventAndTempById" resultType="java.util.Map">
         SELECT
         TO_CHAR(MIN(ti.start_time),'YYYY-MM-DD HH24:MI:SS') as startTime,
         TO_CHAR(MAX(ti.end_time),'YYYY-MM-DD HH24:MI:SS') as endTime,
@@ -571,11 +571,11 @@
         MAX(ti.is_scenario) as isScenario
         FROM
         t_risk_incidents ti
-        LEFT JOIN t_query_template tt ON ti.template_id = tt.id
-        LEFT JOIN t_event_template te ON ti.template_id = te.id
+        LEFT JOIN t_query_template tt ON CAST(ti.template_id AS BIGINT) = tt.id
+        LEFT JOIN t_event_template te ON CAST(ti.template_id AS BIGINT) = te.id
         WHERE ti.id  IN (
         <foreach collection="ids" separator="," item="id" index="index" >
-            #{id,jdbcType=INTEGER}
+            #{id,jdbcType=BIGINT}
         </foreach> )
         GROUP BY ti.mirror_sub_category, ti.event_code, ti."name", te.incident_name, te.incident_type, te.incident_rule_type, ti.incident_cond, ti.focus, te.conclusion, te.display_filed, ti.sub_category, tt.ck_query_field, tt.ck_query_agg_field, tt.ck_query_condition, tt.inner_query_field, tt.outer_query_field, tt.is_thread, tt.agg_field, tt.interval_time
     </select>
@@ -651,7 +651,7 @@
         threat_severity AS threatSeverity
         FROM
         t_risk_incidents ti
-        LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+        LEFT JOIN t_event_template tm ON CAST(ti.template_id AS BIGINT) = tm.id
         WHERE
         ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
         <if test="eventName != null and eventName != ''">
@@ -684,7 +684,7 @@
         <if test="judgeResults != null and judgeResults.size != null">
             and judge_result in
             <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
-                #{sub}
+                CAST(#{sub} AS INTEGER)
             </foreach>
         </if>
         <if test="threatSeverity != null and threatSeverity.size() != 0">
@@ -708,7 +708,7 @@
         second_event_type_chinese AS "name"
         FROM
         t_risk_incidents ti
-        LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+        LEFT JOIN t_event_template tm ON CAST(ti.template_id AS BIGINT) = tm.id
         WHERE
         ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
         <if test="eventName != null and eventName != ''">
@@ -741,7 +741,7 @@
         <if test="judgeResults != null and judgeResults.size != null">
             and judge_result in
             <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
-                #{sub}
+                CAST(#{sub} AS INTEGER)
             </foreach>
         </if>
         <if test="threatSeverity != null and threatSeverity.size() != 0">
@@ -764,7 +764,7 @@
         kill_chain
         FROM
         t_risk_incidents ti
-        LEFT JOIN t_event_template tm ON ti.template_id = tm.id
+        LEFT JOIN t_event_template tm ON CAST(ti.template_id AS BIGINT) = tm.id
         WHERE
         ti.end_time BETWEEN CAST(#{startTime} AS timestamp) AND CAST(#{endTime} AS timestamp)
         <if test="eventName != null and eventName != ''">
@@ -797,7 +797,7 @@
         <if test="judgeResults != null and judgeResults.size != null">
             and judge_result in
             <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
-                #{sub}
+                CAST(#{sub} AS INTEGER)
             </foreach>
         </if>
         <if test="threatSeverity != null and threatSeverity.size() != 0">
@@ -902,7 +902,7 @@
             <if test="judgeResults != null and judgeResults.size != null">
                 and judge_result in
                 <foreach collection="judgeResults" separator=","  open="(" close=")" item="sub">
-                    #{sub}
+                    CAST(#{sub} AS INTEGER)
                 </foreach>
             </if>
             <if test="alarmStatus != null and alarmStatus.size != null">

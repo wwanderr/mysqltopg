@@ -46,7 +46,7 @@
     WHERE
 	ti.id IN (
 	<foreach collection="ids" index="index" item="id" separator=",">
-		#{id,jdbcType=INTEGER}
+		#{id,jdbcType=BIGINT}
 	</foreach> )
     </select>
 
@@ -88,7 +88,7 @@
 	LEFT JOIN t_event_template te ON ti.template_id = te.id
 	WHERE ti.id  IN (
 	<foreach collection="ids" separator="," item="id" index="index" >
-		#{id,jdbcType=INTEGER}
+		#{id,jdbcType=BIGINT}
 	</foreach> )
 	</select>
 
@@ -112,7 +112,7 @@
 		LEFT JOIN
 		t_event_template tt
 		ON ti.template_id = tt.id
-		WHERE ti.id = #{id,jdbcType=INTEGER}
+		WHERE ti.id = #{id,jdbcType=BIGINT}
 	</select>
 
 	<select id="queryEventById" parameterType="java.util.List" resultType="java.lang.String">
@@ -212,7 +212,7 @@
 			#{item,jdbcType=BIGINT}
 		</foreach>
 		) a
-		LEFT JOIN t_alarm_status_timing_task tk ON a.eventId = tk.associated_field
+		LEFT JOIN t_alarm_status_timing_task tk ON CAST(a.eventId AS VARCHAR) = tk.associated_field
 		ORDER BY endTime DESC
 	</select>
 
@@ -448,7 +448,7 @@
 			</foreach>
 		</if>
 		) a
-		LEFT JOIN t_alarm_status_timing_task tk ON a.eventId = tk.associated_field and task_type = 'SecurityEvent'
+		LEFT JOIN t_alarm_status_timing_task tk ON CAST(a.eventId AS VARCHAR) = tk.associated_field and task_type = 'SecurityEvent'
 		<if test="isScenario != null">
 			WHERE isScenario = #{isScenario,jdbcType=BOOLEAN}
 		</if>
@@ -950,7 +950,7 @@
 
 	<delete id="deleteTimingTask">
 		delete from t_alarm_status_timing_task where associated_field in(
-			select id from t_security_incidents where event_code in
+			select CAST(id AS VARCHAR) from t_security_incidents where event_code in
 											   (select t.event_code  from t_event_thread t left join t_event_template a on t.template_id = a.id
 												where t.time_part = #{timePart} and t.focus =#{focus} and t.focus_ip =#{focusIp} and a.priority &gt; #{priority} and t.is_delete=false)
 												)

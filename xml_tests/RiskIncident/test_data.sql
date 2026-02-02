@@ -23,7 +23,7 @@ INSERT INTO "t_event_template" (
 (2002, '勒索软件传播尝试', '恶意软件', '勒索软件', '横向传播', true,
 'smb_exploit_detected AND file_encryption_attempt', '检测到勒索软件通过SMB漏洞尝试横向传播',
 '建议：1.确认漏洞已修复；2.全网扫描勒索软件；3.更新EDR规则',
-'勒索软件传播尝试，已成功拦截', 'target_network', true, 9, CURRENT_TIMESTAMP),
+'勒索软件传播尝试，已成功拦截', 'target_net', true, 9, CURRENT_TIMESTAMP),
 
 (2003, '内网横向移动攻击', '横向移动', '内网渗透', 'Pass-the-Hash', true,
 'lateral_movement_detected AND target_is_critical', '检测到攻击者从被控主机向核心网段进行横向移动',
@@ -33,7 +33,7 @@ INSERT INTO "t_event_template" (
 (2004, '钓鱼邮件攻击', '社会工程', '钓鱼攻击', '邮件钓鱼', false,
 'phishing_indicators AND suspicious_sender', '检测到钓鱼邮件，但收件人未点击恶意链接',
 '建议：1.加强安全意识培训；2.更新邮件过滤规则',
-'钓鱼邮件已拦截，未造成危害', 'recipient_email', true, 3, CURRENT_TIMESTAMP),
+'钓鱼邮件已拦截，未造成危害', 'recipient', true, 3, CURRENT_TIMESTAMP),
 
 (2005, '大规模数据外传', '数据外泄', '目标达成', '数据窃取', true,
 'outbound_data_volume > 10GB AND destination_is_foreign', '检测到内网主机向境外IP传输大量数据',
@@ -89,27 +89,32 @@ INSERT INTO "t_security_incidents" (
     "attacker", "victim", "focus", "focus_ip", "threat_severity", "alarm_results",
     "start_time", "end_time", "counts", "alarm_status", "create_time", "update_time"
 ) VALUES
-(5001, 'RISK-2026-001', 'APT Attack Event', '2001', 'Advanced Threat', 'APT Attack',
+-- 5001: 高级威胁（中文category，用于aggClueSecurityEventByName测试）
+(5001, 'RISK-2026-001', 'APT Attack Event', 2001, '高级威胁', 'APT Attack',
  '203.0.113.88', '192.168.10.50', 'target_ip', '192.168.10.50', 'High', 'OK',
  CURRENT_TIMESTAMP - INTERVAL '3 days', CURRENT_TIMESTAMP - INTERVAL '2 days 12 hours',
  15, 'unprocessed', CURRENT_TIMESTAMP - INTERVAL '3 days', CURRENT_TIMESTAMP),
 
-(5002, 'RISK-2026-002', 'Ransomware Event', '2002', 'Malware', 'Ransomware',
- '198.51.100.150', '192.168.50.0/24', 'target_network', '192.168.50.1', 'High', 'FAIL',
+-- 5002: 恶意软件（中文category）
+(5002, 'RISK-2026-002', 'Ransomware Event', 2002, '恶意软件', 'Ransomware',
+ '198.51.100.150', '192.168.50.0/24', 'target_net', '192.168.50.1', 'High', 'FAIL',
  CURRENT_TIMESTAMP - INTERVAL '12 hours', CURRENT_TIMESTAMP - INTERVAL '11 hours',
  3, 'processing', CURRENT_TIMESTAMP - INTERVAL '12 hours', CURRENT_TIMESTAMP),
 
-(5003, 'RISK-2026-003', 'Lateral Movement Event', '2003', 'Lateral Movement', 'Pass-the-Hash',
+-- 5003: 横向移动（中文category）- 用于测试，不会被excludeEventIds排除
+(5003, 'RISK-2026-003', 'Lateral Movement Event', 2003, '高级威胁', 'Pass-the-Hash',
  '192.168.20.88', '192.168.30.0/24', 'src_ip', '192.168.20.88', 'Medium', 'OK',
  CURRENT_TIMESTAMP - INTERVAL '2 hours', CURRENT_TIMESTAMP,
  8, 'unprocessed', CURRENT_TIMESTAMP - INTERVAL '2 hours', CURRENT_TIMESTAMP),
 
-(5004, 'RISK-2026-004', 'Phishing Email Event', '2004', 'Social Engineering', 'Email Phishing',
- 'phishing@evil-domain.com', '192.168.100.25', 'recipient_email', '192.168.100.25', 'Low', 'FAIL',
+-- 5004: 社会工程（中文category）
+(5004, 'RISK-2026-004', 'Phishing Email Event', 2004, '社会工程', 'Email Phishing',
+ 'phishing@evil-domain.com', '192.168.100.25', 'recipient', '192.168.100.25', 'Low', 'FAIL',
  CURRENT_TIMESTAMP - INTERVAL '5 days', CURRENT_TIMESTAMP - INTERVAL '5 days',
  1, 'processed', CURRENT_TIMESTAMP - INTERVAL '5 days', CURRENT_TIMESTAMP),
 
-(5005, 'RISK-2026-005', 'Data Exfiltration Event', '2005', 'Data Exfiltration', 'Large Transfer',
+-- 5005: 数据外泄（中文category）
+(5005, 'RISK-2026-005', 'Data Exfiltration Event', 2005, '数据外泄', 'Large Transfer',
  '192.168.80.120', '45.xxx.xxx.xxx', 'src_ip', '192.168.80.120', 'High', 'UNKNOWN',
  CURRENT_TIMESTAMP - INTERVAL '1 hour', CURRENT_TIMESTAMP,
  1, 'unprocessed', CURRENT_TIMESTAMP - INTERVAL '1 hour', CURRENT_TIMESTAMP);
@@ -131,7 +136,7 @@ INSERT INTO "t_risk_incidents" (
 -- ==========================================
 -- 场景1：高危APT攻击（已研判-成功攻击）
 -- ==========================================
-(1001, 'RISK-2026-001', '高级持续性威胁(APT)攻击', '2001', 'High',
+(1001, 'RISK-2026-001', '高级持续性威胁(APT)攻击', 2001, 'High',
  CURRENT_TIMESTAMP - INTERVAL '3 days', CURRENT_TIMESTAMP - INTERVAL '2 days 12 hours',
  '高级威胁', '持续性威胁',
  '192.168.10.50', 'victim', 15, 'unprocessed', 'OK',
@@ -144,7 +149,7 @@ INSERT INTO "t_risk_incidents" (
 -- ==========================================
 -- 场景2：高危勒索软件（已研判-尝试攻击）
 -- ==========================================
-(1002, 'RISK-2026-002', '勒索软件传播尝试', '2002', 'High',
+(1002, 'RISK-2026-002', '勒索软件传播尝试', 2002, 'High',
  CURRENT_TIMESTAMP - INTERVAL '12 hours', CURRENT_TIMESTAMP - INTERVAL '11 hours 30 minutes',
  '恶意软件', '勒索软件',
  '192.168.50.1', 'victim', 3, 'processing', 'FAIL',
@@ -157,7 +162,7 @@ INSERT INTO "t_risk_incidents" (
 -- ==========================================
 -- 场景3：中危横向移动（正在进行-未研判）
 -- ==========================================
-(1003, 'RISK-2026-003', '内网横向移动攻击', '2003', 'Medium',
+(1003, 'RISK-2026-003', '内网横向移动攻击', 2003, 'Medium',
  CURRENT_TIMESTAMP - INTERVAL '2 hours', CURRENT_TIMESTAMP,
  '横向移动', 'Pass-the-Hash',
  '192.168.20.88', 'attacker', 8, 'unprocessed', 'OK',
@@ -170,20 +175,20 @@ INSERT INTO "t_risk_incidents" (
 -- ==========================================
 -- 场景4：低危钓鱼邮件（已研判-无害）
 -- ==========================================
-(1004, 'RISK-2026-004', '钓鱼邮件攻击', '2004', 'Low',
+(1004, 'RISK-2026-004', '钓鱼邮件攻击', 2004, 'Low',
  CURRENT_TIMESTAMP - INTERVAL '5 days', CURRENT_TIMESTAMP - INTERVAL '5 days',
  '社会工程', '邮件钓鱼',
  '192.168.100.25', 'victim', 1, 'processed', 'FAIL',
  'sender=phishing@evil-domain.com&recipient=192.168.100.25', '[5004]', 'incident',
  CURRENT_TIMESTAMP - INTERVAL '5 days', CURRENT_TIMESTAMP - INTERVAL '5 days',
- '["钓鱼邮件", "社会工程", "已拦截"]', 0,
+ '["钓鱼邮件" "社会工程", "已拦截"]', 0,
  'phishing_indicators=true AND suspicious_sender=true',
  '初始访问（已阻断）', 3, '人工研判'),
 
 -- ==========================================
 -- 场景5：高危数据外泄（未知-待研判）
 -- ==========================================
-(1005, 'RISK-2026-005', '大规模数据外传', '2005', 'High',
+(1005, 'RISK-2026-005', '大规模数据外传', 2005, 'High',
  CURRENT_TIMESTAMP - INTERVAL '1 hour', CURRENT_TIMESTAMP,
  '数据外泄', '数据窃取',
  '192.168.80.120', 'attacker', 1, 'unprocessed', 'UNKNOWN',
@@ -196,7 +201,7 @@ INSERT INTO "t_risk_incidents" (
 -- ==========================================
 -- 场景6-10：补充更多测试数据
 -- ==========================================
-(1006, 'RISK-2026-006', 'SQL注入攻击', '2001', 'Medium',
+(1006, 'RISK-2026-006', 'SQL注入攻击', 2001, 'Medium',
  CURRENT_TIMESTAMP - INTERVAL '8 hours', CURRENT_TIMESTAMP - INTERVAL '7 hours',
  'Web攻击', 'SQL注入',
  '10.0.0.50', 'victim', 20, 'processing', 'OK',
@@ -205,7 +210,7 @@ INSERT INTO "t_risk_incidents" (
  '["SQL注入", "Web攻击"]', 0,
  NULL, '侦查→初始访问→持久化', 2, '系统自动研判'),
 
-(1007, 'RISK-2026-007', 'DDoS拒绝服务', '2002', 'High',
+(1007, 'RISK-2026-007', 'DDoS拒绝服务', 2002, 'High',
  CURRENT_TIMESTAMP - INTERVAL '6 hours', CURRENT_TIMESTAMP - INTERVAL '5 hours',
  '拒绝服务', 'DDoS攻击',
  '203.0.113.100', 'attacker', 1000, 'unprocessed', 'OK',
@@ -214,7 +219,7 @@ INSERT INTO "t_risk_incidents" (
  '["DDoS", "拒绝服务"]', 1,
  'traffic_volume>1000Mbps', '初始访问', 1, '威胁情报回连时序研判'),
 
-(1008, 'RISK-2026-008', '暴力破解攻击', '2003', 'Medium',
+(1008, 'RISK-2026-008', '暴力破解攻击', 2003, 'Medium',
  CURRENT_TIMESTAMP - INTERVAL '4 hours', CURRENT_TIMESTAMP - INTERVAL '3 hours',
  '凭证访问', '暴力破解',
  '198.51.100.200', 'attacker', 500, 'processed', 'FAIL',
@@ -223,7 +228,7 @@ INSERT INTO "t_risk_incidents" (
  '["暴力破解", "SSH"]', 0,
  'failed_login_attempts>100', '初始访问（已拦截）', 2, '人工研判'),
 
-(1009, 'RISK-2026-009', '木马植入', '2004', 'High',
+(1009, 'RISK-2026-009', '木马植入', 2004, 'High',
  CURRENT_TIMESTAMP - INTERVAL '24 hours', CURRENT_TIMESTAMP - INTERVAL '23 hours',
  '恶意代码', '木马程序',
  '172.16.0.100', 'victim', 1, 'unprocessed', 'OK',
@@ -232,7 +237,7 @@ INSERT INTO "t_risk_incidents" (
  '["木马", "远程控制"]', 1,
  'malware_hash="abc123def456"', '初始访问→执行→持久化', 1, '系统自动研判'),
 
-(1010, 'RISK-2026-010', '提权攻击', '2005', 'High',
+(1010, 'RISK-2026-010', '提权攻击', 2005, 'High',
  CURRENT_TIMESTAMP - INTERVAL '48 hours', CURRENT_TIMESTAMP - INTERVAL '47 hours',
  '权限提升', '本地提权',
  '192.168.5.50', 'victim', 2, 'processed', 'OK',

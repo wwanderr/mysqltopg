@@ -37,7 +37,7 @@ CREATE TABLE "t_event_template" (
   "incident_description" text COLLATE "pg_catalog"."default",
   "incident_suggestion" text COLLATE "pg_catalog"."default",
   "conclusion" text COLLATE "pg_catalog"."default",
-  "focus" varchar(10) COLLATE "pg_catalog"."default",
+  "focus" varchar(50) COLLATE "pg_catalog"."default",
   "display_filed" text COLLATE "pg_catalog"."default",
   "enable" bool,
   "update_time" timestamp(6),

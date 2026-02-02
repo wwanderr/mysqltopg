@@ -1,20 +1,14 @@
 package com.dbapp.extension.xdr.threatMonitor.mapper;
 
-import com.dbapp.extension.xdr.threatMonitor.entity.RiskIncidentOutGoing;
+import com.dbapp.extension.xdr.threatMonitor.entity.RiskIncidentOutGoingHistory;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import java.util.List;
-import java.util.Map;
 
+/**
+ * RiskIncidentOutGoingHistoryMapper
+ * 只继承BaseMapper，没有自定义方法
+ */
 @Mapper
-public interface RiskIncidentOutGoingHistoryMapper {
-    List<RiskIncidentOutGoing> mappingFromClueSecurityEvent(@Param("params") Map<String, Object> params);
-    List<RiskIncidentOutGoing> mappingNormalSecurityEvent(@Param("params") Map<String, Object> params);
-    int backUpLastTermData(@Param("params") Map<String, Object> params);
-    void batchInsertOrUpdateIncident(@Param("list") List<RiskIncidentOutGoing> list);
-    int deleteOldIncident(@Param("saveDays") Integer saveDays);
-    List<RiskIncidentOutGoing> queryListByTime(@Param("startTime") String startTime, @Param("endTime") String endTime);
-    void batchUpdatePayload(@Param("list") List<RiskIncidentOutGoing> list);
-    int clearHistoryData(@Param("saveDays") Integer saveDays);
-    List<Map<String, Object>> queryOutGoingList(@Param("params") Map<String, Object> params);
+public interface RiskIncidentOutGoingHistoryMapper extends BaseMapper<RiskIncidentOutGoingHistory> {
+    // 空接口，所有CRUD方法继承自BaseMapper
 }
