@@ -311,7 +311,7 @@
                     severity = #{item.severity},
                 </if>
                 <if test="item.catOutcome != null and item.catOutcome != ''">
-                    cat_outcome = case when cat_outcome != 'OK' then #{item.catOutcome} else 'OK' end,
+                    cat_outcome = case when t_risk_incidents_out_going.cat_outcome != 'OK' then #{item.catOutcome} else 'OK' end,
                 </if>
                 <if test="item.payload != null and item.payload != ''">
                     payload = #{item.payload},

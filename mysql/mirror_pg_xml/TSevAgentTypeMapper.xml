@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.xdr.mapper.TSevAgentTypeMapper">
+  <resultMap id="BaseResultMap" type="com.dbapp.xdr.bean.po.TSevAgentType">
+    <!--@mbg.generated-->
+    <!--@Table t_sev_agent_type-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="agent_type" jdbcType="VARCHAR" property="agentType" />
+    <result column="agent_type_name" jdbcType="VARCHAR" property="agentTypeName" />
+    <result column="description" jdbcType="VARCHAR" property="description" />
+    <result column="support_version" jdbcType="VARCHAR" property="supportVersion" />
+    <result column="license_pattern" jdbcType="VARCHAR" property="licensePattern" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, agent_type, agent_type_name, description, support_version, license_pattern
+  </sql>
+</mapper>

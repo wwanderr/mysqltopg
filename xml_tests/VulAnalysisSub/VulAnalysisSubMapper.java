@@ -1,5 +1,6 @@
 package com.dbapp.extension.xdr.vulnerabilityAnalysis.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.dbapp.extension.xdr.vulnerabilityAnalysis.entity.VulAnalysisSub;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -8,22 +9,32 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * VulAnalysisSub Mapper接口
- * 映射文件：VulAnalysisSubMapper.xml
- * 包含11个方法
+ * VulAnalysisSub Mapper 接口（根据反编译接口对齐）
+ *
+ * 对应 XML: VulAnalysisSubMapper.xml
  */
 @Mapper
-public interface VulAnalysisSubMapper {
-    
-    int insertOrUpdate(@Param("vulList") List<VulAnalysisSub> vulList);
-    Long queryListCount(@Param("params") Map<String, Object> params);
-    List<Map<String, Object>> queryList(@Param("params") Map<String, Object> params);
-    Long querySubListCount(@Param("params") Map<String, Object> params);
-    List<Map<String, Object>> querySubListCveCount(@Param("params") Map<String, Object> params);
-    List<Map<String, Object>> querySubList(@Param("params") Map<String, Object> params);
-    List<Map<String, Object>> querySubListById(@Param("idList") List<Long> idList);
-    void updateByParams(@Param("params") Map<String, Object> params);
-    void updateByIds(@Param("ids") List<Long> ids, @Param("ignoreStatus") Integer ignoreStatus);
-    List<Map<String, Object>> queryTop10(@Param("params") Map<String, Object> params);
-    List<Map<String, Object>> queryProportion(@Param("params") Map<String, Object> params);
+public interface VulAnalysisSubMapper extends BaseMapper<VulAnalysisSub> {
+
+    Long insertOrUpdate(VulAnalysisSub var1);
+
+    Long queryListCount(Map<String, Object> var1);
+
+    List<Map<String, Object>> queryList(Map<String, Object> var1);
+
+    List<Map<String, Object>> querySubList(Map<String, Object> var1);
+
+    List<Map<String, Object>> querySubListById(List<String> var1);
+
+    Long querySubListCount(Map<String, Object> var1);
+
+    void updateByParams(Map<String, Object> var1);
+
+    List<Map<String, Object>> queryTop10(Map<String, Object> var1);
+
+    List<Map<String, Object>> queryProportion(Map<String, Object> var1);
+
+    void updateByIds(@Param("id") List<String> var1, @Param("status") Integer var2);
+
+    List<Map<String, Object>> querySubListCveCount(Map<String, Object> var1);
 }

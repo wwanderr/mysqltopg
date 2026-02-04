@@ -1,17 +1,10 @@
-package com.dbapp.extension.xdr.test.mapper;
+package com.dbapp.extension.xdr.threatMonitor.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.dbapp.extension.xdr.threatMonitor.entity.ScenarioData;
 import org.apache.ibatis.annotations.Mapper;
 
-/**
- * ScenarioData Mapper 接口
- * 
- * 对应 XML: ScenarioDataMapper.xml
- * 
- * 生成时间: 2026-01-26 11:03:49
- */
 @Mapper
-public interface ScenarioDataMapper {
-
-    int insertOrUpdate(ScenarioData entity);
-
+public interface ScenarioDataMapper extends BaseMapper<ScenarioData> {
+    void insertOrUpdate(ScenarioData entity);
 }

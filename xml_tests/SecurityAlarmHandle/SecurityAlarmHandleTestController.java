@@ -1,11 +1,14 @@
 package com.test.controller;
 
-import com.dbapp.extension.xdr.security.mapper.SecurityAlarmHandleMapper;
+import com.dbapp.extension.xdr.linkageHandle.mapper.SecurityAlarmHandleMapper;
 import com.dbapp.extension.xdr.linkageHandle.entity.SecurityAlarmHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * SecurityAlarmHandle (安全告警处理) 深度测试控制器
@@ -29,14 +32,17 @@ public class SecurityAlarmHandleTestController {
     public String test1_insertOrUpdate() {
         try {
             System.out.println("测试: insertOrUpdate - 插入或更新告警处理记录");
+
+            String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            String nowPlus1h = LocalDateTime.now().plusHours(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             
             // 测试数据1：新插入
             SecurityAlarmHandle handle1 = new SecurityAlarmHandle();
             handle1.setAggCondition("AGG-COND-TEST-001");
             handle1.setWindowId("WIN-TEST-001");
-            handle1.setExecuteTime(new Timestamp(System.currentTimeMillis() + 3600000));
+            handle1.setExecuteTime(nowPlus1h);
             handle1.setHandleStatus("pending");
-            handle1.setResult(false);
+            handle1.setResult(0);
             
             mapper.insertOrUpdate(handle1);
             System.out.println("  - 新插入: AGG-COND-TEST-001 + WIN-TEST-001");
@@ -45,11 +51,14 @@ public class SecurityAlarmHandleTestController {
             SecurityAlarmHandle handle2 = new SecurityAlarmHandle();
             handle2.setAggCondition("AGG-COND-001");  // test_data.sql中已存在
             handle2.setWindowId("WIN-2026-001");       // test_data.sql中已存在
-            handle2.setExecuteTime(new Timestamp(System.currentTimeMillis()));
+            handle2.setExecuteTime(now);
             handle2.setHandleStatus("completed");
-            handle2.setResult(true);  // 更新为已处置
-            
-            mapper.insertOrUpdate(handle2);
+            handle2.setResult(1);  // 更新为已处置
+
+            List<SecurityAlarmHandle> list1 = Arrays.asList(handle1);
+            mapper.insertOrUpdate(list1);
+            List<SecurityAlarmHandle> list2 = Arrays.asList(handle2);
+            mapper.insertOrUpdate(list2);
             System.out.println("  - 更新: AGG-COND-001 + WIN-2026-001 (result false→true)");
             
             System.out.println("结果: 成功插入/更新 2 条");
@@ -74,9 +83,9 @@ public class SecurityAlarmHandleTestController {
             
             // 测试数据：更新test_data.sql中的记录（ID: 1003, status: processing→completed）
             SecurityAlarmHandle handle = new SecurityAlarmHandle();
-            handle.setId(1003L);  // test_data.sql中的数据
+            handle.setId(1003);  // test_data.sql中的数据
             handle.setHandleStatus("completed");
-            handle.setResult(true);  // 标记为已完成
+            handle.setResult(1);  // 标记为已完成
             
             mapper.updateStatusById(handle);
             System.out.println("  - 更新ID=1003: processing→completed, result=false→true");

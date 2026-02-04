@@ -4,6 +4,8 @@ import com.dbapp.extension.xdr.linkageHandle.mapper.ScanHistoryDetailMapper;
 import com.dbapp.extension.xdr.linkageHandle.entity.BaseHistoryVO;
 import com.dbapp.extension.xdr.linkageHandle.entity.ScanHistoryDetail;
 import com.dbapp.extension.xdr.linkageHandle.entity.ScanHistoryDetailVO;
+import com.dbapp.extension.xdr.linkageHandle.entity.ScanStrategyParam;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.sql.Timestamp;
@@ -30,7 +32,7 @@ public class ScanHistoryDetailTestController {
         try {
             System.out.println("=== 测试: countLaunchTimesByStrategyId（foreach批量统计） ===");
             
-            List<Integer> strategyIds = Arrays.asList(6001, 6002, 6003);
+            List<Long> strategyIds = Arrays.asList(6001L, 6002L, 6003L);
             List<BaseHistoryVO> result = mapper.countLaunchTimesByStrategyId(strategyIds);
             
             System.out.println("✓ 查询策略ID: " + strategyIds);
@@ -125,41 +127,43 @@ public class ScanHistoryDetailTestController {
     public String testSelectByOption() {
         try {
             System.out.println("=== 测试: selectByOption（综合参数+JOIN） ===");
-            
-            Map<String, Object> params = new HashMap<>();
-            
+
             // 场景1：所有if参数都有值
-            params.put("strategyName", "病毒");  // if1: strategyName (ILIKE查询)
-            params.put("deviceIp", "10.0.1");    // if2: deviceIp (ILIKE查询)
-            params.put("nodeIp", "192.168");     // if3: nodeIp (ILIKE查询)
-            params.put("scanTypeList", Arrays.asList("virus", "site"));  // if4: scanTypeList (in查询)
-            params.put("sourceList", Arrays.asList("manual", "auto"));   // if5: sourceList (in查询)
-            params.put("startTime", "2025-01-01 00:00:00");  // 必需参数
-            params.put("endTime", "2026-12-31 23:59:59");    // 必需参数
-            
-            List<ScanHistoryDetailVO> result1 = mapper.selectByOption(params);
-            System.out.println("✓ 场景1（所有参数）: " + result1.size() + " 条");
-            
-            // 场景2：仅必需参数（测试其他if不满足）
-            Map<String, Object> params2 = new HashMap<>();
-            params2.put("startTime", "2025-01-01 00:00:00");
-            params2.put("endTime", "2026-12-31 23:59:59");
-            
-            List<ScanHistoryDetailVO> result2 = mapper.selectByOption(params2);
-            System.out.println("✓ 场景2（仅时间范围）: " + result2.size() + " 条");
-            
-            // 场景3：测试scanTypeList和sourceList为空
-            Map<String, Object> params3 = new HashMap<>();
-            params3.put("strategyName", "策略");
-            params3.put("scanTypeList", new ArrayList<>());  // 空list，不应触发if
-            params3.put("sourceList", new ArrayList<>());     // 空list，不应触发if
-            params3.put("startTime", "2025-01-01 00:00:00");
-            params3.put("endTime", "2026-12-31 23:59:59");
-            
-            List<ScanHistoryDetailVO> result3 = mapper.selectByOption(params3);
-            System.out.println("✓ 场景3（空list测试）: " + result3.size() + " 条");
-            
-            return "SUCCESS: 共 " + (result1.size() + result2.size() + result3.size()) + " 条";
+            ScanStrategyParam param1 = new ScanStrategyParam();
+            param1.setStrategyName("病毒");
+            param1.setDeviceIp("10.0.1");
+            param1.setNodeIp("192.168");
+            param1.setScanTypeList(Arrays.asList("virus", "site"));
+            param1.setSourceList(Arrays.asList("manual", "auto"));
+            param1.setStartTime("2025-01-01 00:00:00");
+            param1.setEndTime("2026-12-31 23:59:59");
+
+            Page<ScanHistoryDetailVO> page1 = new Page<>(1, 20);
+            Page<ScanHistoryDetailVO> result1 = (Page<ScanHistoryDetailVO>) mapper.selectByOption(page1, param1);
+            System.out.println("✓ 场景1（所有参数）: " + result1.getRecords().size() + " 条，总数=" + result1.getTotal());
+
+            // 场景2：仅必需参数
+            ScanStrategyParam param2 = new ScanStrategyParam();
+            param2.setStartTime("2025-01-01 00:00:00");
+            param2.setEndTime("2026-12-31 23:59:59");
+            Page<ScanHistoryDetailVO> page2 = new Page<>(1, 50);
+            Page<ScanHistoryDetailVO> result2 = (Page<ScanHistoryDetailVO>) mapper.selectByOption(page2, param2);
+            System.out.println("✓ 场景2（仅时间范围）: " + result2.getRecords().size() + " 条，总数=" + result2.getTotal());
+
+            // 场景3：scanTypeList/sourceList为空
+            ScanStrategyParam param3 = new ScanStrategyParam();
+            param3.setStrategyName("策略");
+            param3.setScanTypeList(new ArrayList<>());
+            param3.setSourceList(new ArrayList<>());
+            param3.setStartTime("2025-01-01 00:00:00");
+            param3.setEndTime("2026-12-31 23:59:59");
+            Page<ScanHistoryDetailVO> page3 = new Page<>(1, 50);
+            Page<ScanHistoryDetailVO> result3 = (Page<ScanHistoryDetailVO>) mapper.selectByOption(page3, param3);
+            System.out.println("✓ 场景3（空list测试）: " + result3.getRecords().size() + " 条，总数=" + result3.getTotal());
+
+            return "SUCCESS: page1=" + result1.getRecords().size()
+                    + ", page2=" + result2.getRecords().size()
+                    + ", page3=" + result3.getRecords().size();
         } catch (Exception e) {
             String errorMsg = "测试方法 selectByOption 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
@@ -176,30 +180,29 @@ public class ScanHistoryDetailTestController {
     public String testSelectScanIps() {
         try {
             System.out.println("=== 测试: selectScanIps（综合参数查询IP列表） ===");
-            
-            Map<String, Object> params = new HashMap<>();
-            
+
             // 场景1：所有if参数
-            params.put("strategyName", "病毒");
-            params.put("deviceIp", "10.0");
-            params.put("nodeIp", "192");
-            params.put("scanTypeList", Arrays.asList("virus"));
-            params.put("sourceList", Arrays.asList("manual"));
-            params.put("startTime", "2025-01-01 00:00:00");
-            params.put("endTime", "2026-12-31 23:59:59");
-            
-            List<String> result1 = mapper.selectScanIps(params);
+            ScanStrategyParam param1 = new ScanStrategyParam();
+            param1.setStrategyName("病毒");
+            param1.setDeviceIp("10.0");
+            param1.setNodeIp("192");
+            param1.setScanTypeList(Arrays.asList("virus"));
+            param1.setSourceList(Arrays.asList("manual"));
+            param1.setStartTime("2025-01-01 00:00:00");
+            param1.setEndTime("2026-12-31 23:59:59");
+
+            List<String> result1 = mapper.selectScanIps(param1);
             System.out.println("✓ 场景1（所有参数）: " + result1.size() + " 个IP");
             for (String ip : result1) {
                 System.out.println("  - " + ip);
             }
             
             // 场景2：仅必需参数
-            Map<String, Object> params2 = new HashMap<>();
-            params2.put("startTime", "2025-01-01 00:00:00");
-            params2.put("endTime", "2026-12-31 23:59:59");
-            
-            List<String> result2 = mapper.selectScanIps(params2);
+            ScanStrategyParam param2 = new ScanStrategyParam();
+            param2.setStartTime("2025-01-01 00:00:00");
+            param2.setEndTime("2026-12-31 23:59:59");
+
+            List<String> result2 = mapper.selectScanIps(param2);
             System.out.println("✓ 场景2（仅时间范围）: " + result2.size() + " 个IP");
             
             return "SUCCESS: 场景1=" + result1.size() + "个IP, 场景2=" + result2.size() + "个IP";

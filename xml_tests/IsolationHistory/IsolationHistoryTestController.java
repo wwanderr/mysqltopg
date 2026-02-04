@@ -3,21 +3,27 @@ package com.test.controller;
 import com.dbapp.extension.xdr.linkageHandle.mapper.IsolationHistoryMapper;
 import com.dbapp.extension.xdr.linkageHandle.entity.BaseHistoryVO;
 import com.dbapp.extension.xdr.linkageHandle.entity.IsolationHistory;
+import com.dbapp.extension.xdr.linkageHandle.entity.IsolationParam;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * IsolationHistory 测试控制器
- * 对应XML方法：batchInsert, countLaunchTimesByStrategyId
+ * 对应XML方法：batchInsert, countLaunchTimesByStrategyId, selectPage, delete
  */
 @RestController
 @RequestMapping("/test/isolationHistory")
 public class IsolationHistoryTestController {
     @Autowired
     private IsolationHistoryMapper mapper;
+
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
      * 测试1：批量插入
@@ -61,7 +67,7 @@ public class IsolationHistoryTestController {
     public String testCountLaunchTimesByStrategyId() {
         try {
             System.out.println("测试: countLaunchTimesByStrategyId");
-            List<Integer> strategyIds = Arrays.asList(2001, 2002, 2003);  // 使用 test_data.sql 中的策略ID
+            List<Long> strategyIds = Arrays.asList(2001L, 2002L, 2003L);  // 使用 test_data.sql 中的策略ID
             
             List<BaseHistoryVO> result = mapper.countLaunchTimesByStrategyId(strategyIds);
             System.out.println("结果: 共 " + result.size() + " 个策略的统计");
@@ -74,6 +80,156 @@ public class IsolationHistoryTestController {
             System.err.println(errorMsg + ": " + e.getMessage());
             e.printStackTrace();
             return "{\"error\": \"" + errorMsg + "\", \"exception\": \"" + e.getClass().getName() + "\", \"message\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+        }
+    }
+
+    /**
+     * 测试3：selectPage - 分页查询隔离历史
+     * URL: /test/isolationHistory/test3-selectPage
+     * 
+     * 测试场景：
+     * - 测试各种查询条件（nodeIp, deviceIp, strategyName, action, source, 时间范围）
+     */
+    @GetMapping("/test3-selectPage")
+    public String testSelectPage() {
+        try {
+            System.out.println("✅ 测试: selectPage");
+            
+            IsolationParam param = new IsolationParam();
+            // 设置查询条件（可以根据 test_data.sql 中的数据调整）
+            param.setNodeIp("192.168.50");  // LIKE 查询
+            param.setDeviceIp("192.168.1");  // LIKE 查询
+            param.setStrategyName("终端隔离策略");  // LIKE 查询
+            param.setAction("主机一键隔离");  // IN 查询（枚举值）
+            param.setSource("auto");  // IN 查询
+            
+            // 设置时间范围（最近7天）
+            LocalDateTime endTime = LocalDateTime.now();
+            LocalDateTime startTime = endTime.minusDays(7);
+            param.setStartTime(startTime.format(FORMATTER));
+            param.setEndTime(endTime.format(FORMATTER));
+            
+            long page = 1L;
+            long size = 10L;
+            
+            Pair<Long, List<IsolationHistory>> result = mapper.selectPage(param, page, size);
+            Long total = result.getLeft();
+            List<IsolationHistory> records = result.getRight();
+            
+            System.out.println("✅ selectPage 执行成功");
+            System.out.println("  总记录数: " + total);
+            System.out.println("  当前页记录数: " + records.size());
+            System.out.println("  页码: " + page + ", 每页大小: " + size);
+            
+            for (int i = 0; i < Math.min(records.size(), 5); i++) {
+                IsolationHistory history = records.get(i);
+                System.out.println(String.format("  记录[%d]: id=%d, nodeIp=%s, deviceIp=%s, strategyName=%s, action=%s",
+                    i + 1, history.getId(), history.getNodeIp(), history.getDeviceIp(), 
+                    history.getStrategyName(), history.getAction()));
+            }
+            
+            return String.format("SUCCESS: 总记录数=%d, 当前页记录数=%d (页码=%d, 每页大小=%d)", 
+                total, records.size(), page, size);
+        } catch (Exception e) {
+            String msg = "❌ testSelectPage 执行失败: " + e.getMessage();
+            System.err.println(msg);
+            e.printStackTrace();
+            return msg;
+        }
+    }
+
+    /**
+     * 测试4：delete - 根据条件删除隔离历史
+     * URL: /test/isolationHistory/test4-delete
+     * 
+     * 测试场景：
+     * - 测试各种删除条件（nodeIp, deviceIp, strategyName, action, source, id, ids, 时间范围）
+     * - 注意：此操作会实际删除数据，建议在测试环境使用
+     */
+    @GetMapping("/test4-delete")
+    public String testDelete() {
+        try {
+            System.out.println("⚠️  测试: delete（将实际删除数据）");
+            
+            IsolationParam param = new IsolationParam();
+            // 设置删除条件（使用测试数据中的值）
+            param.setNodeIp("192.168.50.200");  // 精确匹配特定节点
+            param.setAction("主机一键隔离");  // 枚举值
+            param.setSource("auto");  // 来源
+            
+            // 或者使用 ID 删除
+            // param.setId(3001L);
+            // param.setIds("3001,3002,3003");
+            
+            int deletedRows = mapper.delete(param);
+            
+            System.out.println("✅ delete 执行成功");
+            System.out.println("  删除条件: nodeIp=" + param.getNodeIp() + ", action=" + param.getAction() + ", source=" + param.getSource());
+            System.out.println("  删除记录数: " + deletedRows);
+            
+            return String.format("SUCCESS: 删除记录数=%d (删除条件: nodeIp=%s, action=%s, source=%s)", 
+                deletedRows, param.getNodeIp(), param.getAction(), param.getSource());
+        } catch (Exception e) {
+            String msg = "❌ testDelete 执行失败: " + e.getMessage();
+            System.err.println(msg);
+            e.printStackTrace();
+            return msg;
+        }
+    }
+
+    /**
+     * 测试5：delete - 根据ID删除（精确删除）
+     * URL: /test/isolationHistory/test5-deleteById
+     */
+    @GetMapping("/test5-deleteById")
+    public String testDeleteById() {
+        try {
+            System.out.println("⚠️  测试: delete by ID（将实际删除数据）");
+            
+            IsolationParam param = new IsolationParam();
+            // 使用 ID 删除（精确删除）
+            param.setId(3001L);  // 删除指定ID的记录
+            
+            int deletedRows = mapper.delete(param);
+            
+            System.out.println("✅ delete by ID 执行成功");
+            System.out.println("  删除ID: " + param.getId());
+            System.out.println("  删除记录数: " + deletedRows);
+            
+            return String.format("SUCCESS: 删除记录数=%d (删除ID=%d)", deletedRows, param.getId());
+        } catch (Exception e) {
+            String msg = "❌ testDeleteById 执行失败: " + e.getMessage();
+            System.err.println(msg);
+            e.printStackTrace();
+            return msg;
+        }
+    }
+
+    /**
+     * 测试6：delete - 根据多个ID删除
+     * URL: /test/isolationHistory/test6-deleteByIds
+     */
+    @GetMapping("/test6-deleteByIds")
+    public String testDeleteByIds() {
+        try {
+            System.out.println("⚠️  测试: delete by IDs（将实际删除数据）");
+            
+            IsolationParam param = new IsolationParam();
+            // 使用多个 ID 删除（逗号分隔）
+            param.setIds("3002,3003,3004");  // 删除多个ID的记录
+            
+            int deletedRows = mapper.delete(param);
+            
+            System.out.println("✅ delete by IDs 执行成功");
+            System.out.println("  删除IDs: " + param.getIds());
+            System.out.println("  删除记录数: " + deletedRows);
+            
+            return String.format("SUCCESS: 删除记录数=%d (删除IDs=%s)", deletedRows, param.getIds());
+        } catch (Exception e) {
+            String msg = "❌ testDeleteByIds 执行失败: " + e.getMessage();
+            System.err.println(msg);
+            e.printStackTrace();
+            return msg;
         }
     }
 }

@@ -107,6 +107,7 @@
         SELECT
             DISTINCT tshd.node_ip
         FROM t_scan_history_detail AS tshd
+        LEFT JOIN t_linked_strategy AS tls ON tshd.strategy_id = tls.id
         WHERE 1=1
         <if test="param.strategyName !=null and param.strategyName != ''">
             AND tls.strategy_name ILIKE '%' || #{param.strategyName} || '%'

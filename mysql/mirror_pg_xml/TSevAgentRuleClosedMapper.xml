@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.xdr.mapper.TSevAgentRuleClosedMapper">
+    <resultMap id="BaseResultMap" type="com.dbapp.xdr.bean.po.TSevAgentRuleClosed">
+        <!--@mbg.generated-->
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="rule_closed_id" jdbcType="BIGINT" property="ruleClosedId"/>
+        <result column="agent_code" jdbcType="VARCHAR" property="agentCode"/>
+        <result column="config_version" jdbcType="BIGINT" property="configVersion"/>
+        <result column="is_delete" jdbcType="TINYINT" property="delete"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id, rule_closed_id, agent_code
+    </sql>
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_sev_agent_rule_closed
+        where id = #{id,jdbcType=BIGINT}
+    </select>
+    <select id="isExistNull" resultType="java.lang.Integer">
+        select count(*)
+        from t_sev_agent_rule_closed
+        where agent_code IS NULL
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        <!--@mbg.generated-->
+        delete from t_sev_agent_rule_closed
+        where id = #{id,jdbcType=BIGINT}
+    </delete>
+    <insert id="insertBatch">
+        <!--@mbg.generated-->
+        insert into t_sev_agent_rule_closed (rule_closed_id, agent_code, config_version)values
+        <foreach collection="closedRules" item="closedRule" separator=",">
+            (#{closedRule.ruleClosedId,jdbcType=BIGINT}, #{closedRule.agentCode,jdbcType=VARCHAR}, #{closedRule.configVersion,jdbcType=BIGINT})
+        </foreach>
+    </insert>
+    <insert id="insertSelective" keyColumn="id" keyProperty="id"
+            parameterType="com.dbapp.xdr.bean.po.TSevAgentRuleClosed" useGeneratedKeys="true">
+        <!--@mbg.generated-->
+        insert into t_sev_agent_rule_closed
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="ruleClosedId != null">
+                rule_closed_id,
+            </if>
+            <if test="agentCode != null">
+                agent_code,
+            </if>
+            <if test="configVersion != null">
+                config_version,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="ruleClosedId != null">
+                #{ruleClosedId,jdbcType=BIGINT},
+            </if>
+            <if test="agentCode != null">
+                #{agentCode,jdbcType=VARCHAR},
+            </if>
+            <if test="configVersion != null">
+                #{configVersion,jdbcType=BIGINT},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective" parameterType="com.dbapp.xdr.bean.po.TSevAgentRuleClosed">
+        <!--@mbg.generated-->
+        update t_sev_agent_rule_closed
+        <set>
+            <if test="ruleClosedId != null">
+                rule_closed_id = #{ruleClosedId,jdbcType=BIGINT},
+            </if>
+            <if test="agentCode != null">
+                agent_code = #{agentCode,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=BIGINT}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.dbapp.xdr.bean.po.TSevAgentRuleClosed">
+        <!--@mbg.generated-->
+        update t_sev_agent_rule_closed
+        set rule_closed_id = #{ruleClosedId,jdbcType=BIGINT},
+        agent_code = #{agentCode,jdbcType=VARCHAR},
+        where id = #{id,jdbcType=BIGINT}
+    </update>
+    <update id="updateAgentCodeByRuleClosedId">
+        update t_sev_agent_rule_closed
+        set agent_code = #{agentCode,jdbcType=VARCHAR}
+        where rule_closed_id = #{ruleClosedId,jdbcType=NUMERIC}
+    </update>
+    <update id="deleteByAgentCodesNotIn">
+        delete from t_sev_agent_rule_closed
+        where rule_closed_id = #{mainId}
+        and (agent_code is null
+        or agent_code not in
+        <foreach collection="agentCodes" item="agentCode" open="(" close=")" separator=",">
+            #{agentCode}
+        </foreach>)
+    </update>
+    <update id="deleteByRuleClosedId">
+        delete from t_sev_agent_rule_closed
+        where
+            rule_closed_id = #{ruleClosedId,jdbcType=NUMERIC}
+    </update>
+    <select id="selectAgentCodeByRuleClosedId" resultMap="BaseResultMap">
+        select agent_code
+        from t_sev_agent_rule_closed
+        where rule_closed_id = #{ruleClosedId,jdbcType=NUMERIC}
+    </select>
+    <select id="selectCountNullByRuleClosedId" resultType="java.lang.Integer">
+        select count(*)
+        from t_sev_agent_rule_closed
+        where rule_closed_id = #{ruleClosedId,jdbcType=NUMERIC}
+        and agent_code is null
+    </select>
+</mapper>

@@ -1,18 +1,16 @@
-package com.dbapp.extension.xdr.test.mapper;
+package com.dbapp.extension.xdr.linkageHandle.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.dbapp.extension.xdr.linkageHandle.entity.SecurityAlarmHandle;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
-/**
- * SecurityAlarmHandle Mapper 接口
- * 
- * 对应 XML: SecurityAlarmHandleMapper.xml
- * 
- * 生成时间: 2026-01-26 11:03:49
- */
+import java.util.List;
+
 @Mapper
-public interface SecurityAlarmHandleMapper {
+public interface SecurityAlarmHandleMapper extends BaseMapper<SecurityAlarmHandle> {
 
-    int insertOrUpdate(SecurityAlarmHandle entity);
-    void updateStatusById(SecurityAlarmHandle entity);  // UPDATE 无返回值
+    void insertOrUpdate(@Param("handleList") List<SecurityAlarmHandle> handleList);
 
+    void updateStatusById(@Param("securityAlarmHandle") SecurityAlarmHandle securityAlarmHandle);
 }

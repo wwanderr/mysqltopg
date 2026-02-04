@@ -135,50 +135,98 @@ INSERT INTO "t_vul_analysis_sub" (
 SELECT setval('"t_vul_analysis_sub_id_seq"', 1015, true);
 
 -- ==========================================
--- 验证：按漏洞等级统计
+-- 补充：跨表依赖的数据（t_asset_info / t_ailpha_network_segment / t_ailpha_security_zone / t_vulnerability_info）
+-- 使 VulAnalysisSubMapper.xml 中的 LEFT JOIN 能查到实际数据
 -- ==========================================
-SELECT 
-    severity_level AS "漏洞等级",
-    COUNT(*) AS "数量",
-    SUM(agg_count) AS "聚合数量",
-    CASE 
-        WHEN MAX(alarm_status) = 5 THEN '未处置'
-        WHEN MAX(alarm_status) = 4 THEN '处置中'
-        WHEN MAX(alarm_status) = 3 THEN '已处置'
-        WHEN MAX(alarm_status) = 2 THEN '误报'
-        WHEN MAX(alarm_status) = 1 THEN '已忽略'
-    END AS "最高状态"
-FROM "t_vul_analysis_sub"
-WHERE id >= 1001 AND id <= 1015
-GROUP BY severity_level
-ORDER BY 
-    CASE severity_level
-        WHEN 'High' THEN 1
-        WHEN 'Medium' THEN 2
-        WHEN 'Low' THEN 3
-    END;
+
+-- 先清理相关表中测试范围内的数据（按 IP / CVE / ID 段）
+DELETE FROM "t_asset_info"
+WHERE asset_ip IN (
+    '192.168.10.50','192.168.20.100','192.168.30.200','192.168.40.150',
+    '192.168.50.50','192.168.60.10','192.168.70.100','192.168.80.50',
+    '192.168.90.200','192.168.100.100','192.168.110.10'
+);
+
+DELETE FROM "t_ailpha_network_segment"
+WHERE relation_type = 'SECURITY_ZONE'
+  AND relation_id IN ('SEC_ZONE_PROD','SEC_ZONE_OFFICE','SEC_ZONE_TEST','SEC_ZONE_DMZ','SEC_ZONE_CORE');
+
+DELETE FROM "t_ailpha_security_zone"
+WHERE id IN ('SEC_ZONE_PROD','SEC_ZONE_OFFICE','SEC_ZONE_TEST','SEC_ZONE_DMZ','SEC_ZONE_CORE');
+
+DELETE FROM "t_vulnerability_info"
+WHERE cve_code IN (
+    'CVE-2021-44228','CVE-2020-0796','CVE-2023-1234','CVE-2022-5678','CVE-2024-9999',
+    'CVE-2021-9876','CVE-2022-8888','CVE-2023-7777','CVE-2019-0708','CVE-2024-1111',
+    'CVE-2023-2222','CVE-2023-3333','CVE-2022-4444','CVE-2023-5555','CVE-2021-6666'
+);
 
 -- ==========================================
--- 验证：按协议统计
+-- t_asset_info：与 t_vul_analysis_sub.asset_ip / assetName / assetType / assetTags / source 对应
+-- 注意：表字段为小写 assetip/assetname/assettype/assettags/assetipnum/source
 -- ==========================================
-SELECT 
-    app_protocol AS "协议",
-    COUNT(*) AS "数量",
-    SUM(CASE WHEN severity_level = 'High' THEN 1 ELSE 0 END) AS "高危数量"
-FROM "t_vul_analysis_sub"
-WHERE id >= 1001 AND id <= 1015
-GROUP BY app_protocol
-ORDER BY "数量" DESC;
+INSERT INTO "t_asset_info" (
+    asset_ip, asset_name, asset_type, asset_tags, "source", asset_ip_num
+) VALUES
+('192.168.10.50',  'WebServer-01',   'Server',        '["Web服务器","生产环境"]', '1', '192.168.10.50'),
+('192.168.20.100', 'FileServer-01',  'Server',        '["文件服务器"]',           '2', '192.168.20.100'),
+('192.168.30.200', 'DBServer-01',    'Database',      '["数据库服务器","测试环境"]', '1', '192.168.30.200'),
+('192.168.40.150', 'Switch-01',      'NetworkDevice', '["网络设备"]',             '3', '192.168.40.150'),
+('192.168.50.50',  'WebApp-01',      'Application',   '["Web应用"]',              '1', '192.168.50.50'),
+('192.168.60.10',  'FTPServer-01',   'Server',        '["FTP服务器"]',            '2', '192.168.60.10'),
+('192.168.70.100', 'LinuxServer-01', 'Server',        '["Linux服务器"]',          '1', '192.168.70.100'),
+('192.168.80.50',  'ECommerce-Web',  'Server',        '["Web服务器","电商平台"]',    '3', '192.168.80.50'),
+('192.168.90.200', 'RDPServer-01',   'Server',        '["远程桌面"]',             '2', '192.168.90.200'),
+('192.168.100.100','TestServer-01',  'Server',        '["测试环境"]',             '1', '192.168.100.100'),
+('192.168.110.10', 'DNSServer-01',   'Server',        '["DNS服务器"]',            '1', '192.168.110.10');
 
 -- ==========================================
--- 验证：按资产IP聚合（测试GROUP BY）
+-- t_ailpha_security_zone：安全域定义，供 t_ailpha_network_segment.relation_id 引用
 -- ==========================================
-SELECT 
-    asset_ip AS "资产IP",
-    COUNT(*) AS "漏洞数量",
-    SUM(agg_count) AS "总聚合数",
-    MAX(end_time) AS "最近发生时间"
-FROM "t_vul_analysis_sub"
-WHERE id >= 1001 AND id <= 1015
-GROUP BY asset_ip
-ORDER BY "漏洞数量" DESC;
+INSERT INTO "t_ailpha_security_zone" (id, name, description, icon_path, tag)
+VALUES
+('SEC_ZONE_PROD',   '生产区', '生产区测试数据',   NULL, NULL),
+('SEC_ZONE_OFFICE', '办公区', '办公区测试数据',   NULL, NULL),
+('SEC_ZONE_TEST',   '测试区', '测试区测试数据',   NULL, NULL),
+('SEC_ZONE_DMZ',    'DMZ区',  'DMZ区测试数据',    NULL, NULL),
+('SEC_ZONE_CORE',   '核心区', '核心区测试数据',   NULL, NULL);
+
+-- ==========================================
+-- t_ailpha_network_segment：SECURITY_ZONE 网段映射
+-- 这里简化为 first_ip=last_ip=assetip，便于 BETWEEN 匹配
+-- ==========================================
+INSERT INTO "t_ailpha_network_segment" (
+    ip_type, relation_type, relation_id, first_ip, last_ip, network_type, content, "order"
+) VALUES
+('IPv4','SECURITY_ZONE','SEC_ZONE_PROD',   '192.168.10.50','192.168.10.50','IP','192.168.10.50',0),
+('IPv4','SECURITY_ZONE','SEC_ZONE_PROD',   '192.168.60.10','192.168.60.10','IP','192.168.60.10',0),
+('IPv4','SECURITY_ZONE','SEC_ZONE_OFFICE', '192.168.20.100','192.168.20.100','IP','192.168.20.100',0),
+('IPv4','SECURITY_ZONE','SEC_ZONE_OFFICE', '192.168.70.100','192.168.70.100','IP','192.168.70.100',0),
+('IPv4','SECURITY_ZONE','SEC_ZONE_TEST',   '192.168.30.200','192.168.30.200','IP','192.168.30.200',0),
+('IPv4','SECURITY_ZONE','SEC_ZONE_DMZ',    '192.168.50.50','192.168.50.50','IP','192.168.50.50',0),
+('IPv4','SECURITY_ZONE','SEC_ZONE_DMZ',    '192.168.80.50','192.168.80.50','IP','192.168.80.50',0),
+('IPv4','SECURITY_ZONE','SEC_ZONE_CORE',   '192.168.90.200','192.168.90.200','IP','192.168.90.200',0),
+('IPv4','SECURITY_ZONE','SEC_ZONE_CORE',   '192.168.110.10','192.168.110.10','IP','192.168.110.10',0),
+('IPv4','SECURITY_ZONE','SEC_ZONE_TEST',   '192.168.100.100','192.168.100.100','IP','192.168.100.100',0);
+
+-- ==========================================
+-- t_vulnerability_info：与 ts.cve / severity_level / vulnerability_name / class_type 对应
+-- ==========================================
+INSERT INTO "t_vulnerability_info" (
+    cve_code, vulnerability_name, severity_level, class_type, created_time, "desc", solution, is_del
+) VALUES
+('CVE-2021-44228','Apache Log4j2 远程代码执行','High','RCE',               NOW(),'测试数据','无',0),
+('CVE-2020-0796','Windows SMBv3 拒绝服务漏洞','High','DoS',              NOW(),'测试数据','无',0),
+('CVE-2023-1234','SQL注入漏洞','Medium','SQL Injection',                    NOW(),'测试数据','无',0),
+('CVE-2022-5678','弱密码认证','Medium','Weak Authentication',              NOW(),'测试数据','无',0),
+('CVE-2024-9999','信息泄露漏洞','Low','Information Disclosure',             NOW(),'测试数据','无',0),
+('CVE-2021-9876','FTP明文传输密码','High','Weak Crypto',                   NOW(),'测试数据','无',0),
+('CVE-2022-8888','SSH暴力破解尝试','Medium','Brute Force',                NOW(),'测试数据','无',0),
+('CVE-2023-7777','跨站脚本攻击','Medium','XSS',                             NOW(),'测试数据','无',0),
+('CVE-2019-0708','BlueKeep远程代码执行','High','RCE',                      NOW(),'测试数据','无',0),
+('CVE-2024-1111','跨站请求伪造','Low','CSRF',                               NOW(),'测试数据','无',0),
+('CVE-2023-2222','目录遍历漏洞','High','Path Traversal',                    NOW(),'测试数据','无',0),
+('CVE-2023-3333','XML外部实体注入','Medium','XXE',                          NOW(),'测试数据','无',0),
+('CVE-2022-4444','任意文件上传','Medium','File Upload',                     NOW(),'测试数据','无',0),
+('CVE-2023-5555','MySQL权限提升','High','Privilege Escalation',             NOW(),'测试数据','无',0),
+('CVE-2021-6666','DNS缓存中毒','High','DNS Poisoning',                      NOW(),'测试数据','无',0);

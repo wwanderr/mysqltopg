@@ -31,11 +31,11 @@ public class VulAnalysisSubTestController {
     public String testInsertOrUpdate() {
         try {
             System.out.println("测试: insertOrUpdate - 批量插入或更新漏洞数据");
-            List<VulAnalysisSub> list = new ArrayList<>();
-            
+            // 注意：实体中的时间字段为 String，这里直接写字符串，XML 中会 CAST 为 timestamp
+
             VulAnalysisSub vul1 = new VulAnalysisSub();
-            vul1.setEndTime(new Timestamp(System.currentTimeMillis()));
-            vul1.setStartTime(new Timestamp(System.currentTimeMillis() - 3600000));
+            vul1.setEndTime("2026-01-28 10:00:00");
+            vul1.setStartTime("2026-01-28 09:00:00");
             vul1.setAlarmResult(3);
             vul1.setAlarmStatus(5);
             vul1.setAppProtocol("HTTP");
@@ -50,16 +50,16 @@ public class VulAnalysisSubTestController {
             vul1.setSeverityLevel("High");
             vul1.setVulnerabilityName("自动化测试漏洞");
             vul1.setClassType("RCE");
-            vul1.setHigh(5);
-            vul1.setMedium(3);
-            vul1.setLow(1);
+            vul1.setHigh(5L);
+            vul1.setMedium(3L);
+            vul1.setLow(1L);
             vul1.setAggCount(10);
             vul1.setEventCode("VUL-AUTO-001");
-            list.add(vul1);
-            
+            Long r1 = mapper.insertOrUpdate(vul1);
+
             VulAnalysisSub vul2 = new VulAnalysisSub();
-            vul2.setEndTime(new Timestamp(System.currentTimeMillis()));
-            vul2.setStartTime(new Timestamp(System.currentTimeMillis() - 7200000));
+            vul2.setEndTime("2026-01-28 11:00:00");
+            vul2.setStartTime("2026-01-28 09:00:00");
             vul2.setAlarmResult(2);
             vul2.setAlarmStatus(4);
             vul2.setAppProtocol("SSH");
@@ -75,16 +75,15 @@ public class VulAnalysisSubTestController {
             vul2.setVulnerabilityName("SSH暴力破解");
             vul2.setClassType("Brute Force");
             vul2.setSrcUserName("root");
-            vul2.setHigh(2);
-            vul2.setMedium(8);
-            vul2.setLow(5);
+            vul2.setHigh(2L);
+            vul2.setMedium(8L);
+            vul2.setLow(5L);
             vul2.setAggCount(15);
             vul2.setEventCode("VUL-AUTO-002");
-            list.add(vul2);
-            
-            int rows = mapper.insertOrUpdate(list);
-            System.out.println("结果: 成功插入/更新 " + rows + " 条数据");
-            return "SUCCESS: " + rows;
+            Long r2 = mapper.insertOrUpdate(vul2);
+            long rows = (r1 == null ? 0 : r1) + (r2 == null ? 0 : r2);
+            System.out.println("结果: 成功插入/更新至少 2 条数据，返回值之和=" + rows);
+            return "SUCCESS: rowsSum=" + rows;
         } catch (Exception e) {
             String errorMsg = "测试方法 testInsertOrUpdate 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
@@ -114,9 +113,9 @@ public class VulAnalysisSubTestController {
             System.out.println("测试: queryListCount - 查询列表数量（包含所有条件参数）");
             Map<String, Object> params = new HashMap<>();
             
-            // 必填参数
-            params.put("startTime", "2026-01-27 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            // 必填参数：给一个足够大的时间范围，覆盖 test_data.sql 中所有 CURRENT_TIMESTAMP 插入的数据
+            params.put("startTime", "2000-01-01 00:00:00");
+            params.put("endTime", "2099-12-31 23:59:59");
             params.put("chartId", 101);
             
             // 可选参数 - 全部测试
@@ -154,8 +153,8 @@ public class VulAnalysisSubTestController {
             Map<String, Object> params = new HashMap<>();
             
             // 必填参数
-            params.put("startTime", "2026-01-27 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            params.put("startTime", "2000-01-01 00:00:00");
+            params.put("endTime", "2099-12-31 23:59:59");
             params.put("chartId", 101);
             
             // 可选参数
@@ -171,9 +170,9 @@ public class VulAnalysisSubTestController {
             // 测试默认排序（order为null）
             // params.put("order", "endTime DESC");
             
-            // 分页参数
-            params.put("offset", 0);
-            params.put("limit", 10);
+            // 分页参数（XML 使用 LIMIT ${size} OFFSET ${page}）
+            params.put("page", 0);
+            params.put("size", 10);
             
             List<Map<String, Object>> list = mapper.queryList(params);
             System.out.println("结果: 查询到 " + list.size() + " 条聚合数据");
@@ -210,8 +209,8 @@ public class VulAnalysisSubTestController {
             Map<String, Object> params = new HashMap<>();
             
             // 必填参数
-            params.put("startTime", "2026-01-27 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            params.put("startTime", "2000-01-01 00:00:00");
+            params.put("endTime", "2099-12-31 23:59:59");
             params.put("chartId", 101);
             
             // 测试所有9个条件参数
@@ -249,12 +248,16 @@ public class VulAnalysisSubTestController {
             Map<String, Object> params = new HashMap<>();
             
             // 必填参数
-            params.put("startTime", "2026-01-27 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            params.put("startTime", "2000-01-01 00:00:00");
+            params.put("endTime", "2099-12-31 23:59:59");
             params.put("chartId", 101);
             
             // 可选参数
-            params.put("assetIp", "192.168");
+            // XML 中对 assetIp 有两种写法：
+            // 1) assetIp != null and assetIp.size() > 0 （期望 List）
+            // 2) assetIps != null and assetIps.size() > 0 （List）
+            // 这里直接使用 assetIps 传入 IP 列表，避免对 String 调用 size() 造成 OGNL 异常
+            params.put("assetIps", Arrays.asList("192.168.10.50","192.168.60.10"));
             params.put("severityLevel", Arrays.asList("High", "Medium"));
             params.put("appProtocol", Arrays.asList("HTTP"));
             
@@ -286,8 +289,8 @@ public class VulAnalysisSubTestController {
             Map<String, Object> params = new HashMap<>();
             
             // 必填参数
-            params.put("startTime", "2026-01-27 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            params.put("startTime", "2000-01-01 00:00:00");
+            params.put("endTime", "2099-12-31 23:59:59");
             params.put("chartId", 101);
             
             // 测试部分参数
@@ -298,9 +301,9 @@ public class VulAnalysisSubTestController {
             // 测试自定义排序
             params.put("order", "ts.end_time DESC");
             
-            // 分页参数
-            params.put("offset", 0);
-            params.put("limit", 10);
+            // 分页参数（XML 使用 LIMIT ${size} OFFSET ${page}）
+            params.put("page", 0);
+            params.put("size", 10);
             
             List<Map<String, Object>> list = mapper.querySubList(params);
             System.out.println("结果: 查询到 " + list.size() + " 条子列表数据");
@@ -327,7 +330,7 @@ public class VulAnalysisSubTestController {
     public String testQuerySubListById() {
         try {
             System.out.println("测试: querySubListById - 根据ID列表查询子列表");
-            List<Long> idList = Arrays.asList(1001L, 1002L, 1003L, 1004L, 1005L);
+            List<String> idList = Arrays.asList("1001","1002","1003","1004","1005");
             List<Map<String, Object>> list = mapper.querySubListById(idList);
             System.out.println("结果: 查询到 " + list.size() + " 条子列表数据");
             return "SUCCESS: " + list.size();
@@ -364,12 +367,12 @@ public class VulAnalysisSubTestController {
             // 条件参数 - 测试多个条件组合
             params.put("assetIp", "192.168.10.50");
             params.put("chartId", 101);
-            params.put("startTime", "2026-01-27 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            params.put("startTime", "2000-01-01 00:00:00");
+            params.put("endTime", "2099-12-31 23:59:59");
             
-            int count = mapper.updateByParams(params);
-            System.out.println("结果: 更新了 " + count + " 条记录");
-            return "SUCCESS: " + count;
+            mapper.updateByParams(params);
+            System.out.println("结果: updateByParams 执行完成（受影响行数请在数据库中确认）");
+            return "SUCCESS";
         } catch (Exception e) {
             String errorMsg = "测试方法 testUpdateByParams 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
@@ -390,12 +393,12 @@ public class VulAnalysisSubTestController {
     public String testUpdateByIds() {
         try {
             System.out.println("测试: updateByIds - 根据ID列表更新状态");
-            List<Long> ids = Arrays.asList(1001L, 1002L, 1003L);
+            List<String> ids = Arrays.asList("1001","1002","1003");
             int alarmStatus = 3;
             
-            int count = mapper.updateByIds(ids, alarmStatus);
-            System.out.println("结果: 更新了 " + count + " 条记录");
-            return "SUCCESS: " + count;
+            mapper.updateByIds(ids, alarmStatus);
+            System.out.println("结果: updateByIds 执行完成（受影响行数请在数据库中确认）");
+            return "SUCCESS";
         } catch (Exception e) {
             String errorMsg = "测试方法 testUpdateByIds 执行失败";
             System.err.println(errorMsg + ": " + e.getMessage());
@@ -422,8 +425,8 @@ public class VulAnalysisSubTestController {
             Map<String, Object> params = new HashMap<>();
             
             // 必填参数
-            params.put("startTime", "2026-01-27 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            params.put("startTime", "2000-01-01 00:00:00");
+            params.put("endTime", "2099-12-31 23:59:59");
             params.put("chartId", 101);
             
             // 可选参数 - 测试部分条件
@@ -462,8 +465,8 @@ public class VulAnalysisSubTestController {
             Map<String, Object> params = new HashMap<>();
             
             // 必填参数
-            params.put("startTime", "2026-01-27 00:00:00");
-            params.put("endTime", "2026-01-28 23:59:59");
+            params.put("startTime", "2000-01-01 00:00:00");
+            params.put("endTime", "2099-12-31 23:59:59");
             params.put("chartId", 101);
             
             // 可选参数

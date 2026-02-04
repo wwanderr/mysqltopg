@@ -11,12 +11,30 @@
 DELETE FROM "t_linked_strategy" WHERE id IN (6001, 6002, 6003);
 
 INSERT INTO "t_linked_strategy" (
-    "id", "strategy_name", "link_device_type", "link_device_ip", 
-    "action", "is_enable", "create_time", "update_time"
+    "id",
+    "strategy_name",
+    "auto_handle",
+    "threat_type",
+    "threat_type_config",
+    "threat_level",
+    "alarm_results",
+    "status",
+    "source",
+    "template_id",
+    "create_time",
+    "update_time",
+    "link_device_config",
+    "alarm_names"
 ) VALUES
-(6001, '病毒扫描策略-A', 'EDR', '10.0.1.100', 'virusScan', 1, CURRENT_TIMESTAMP - INTERVAL '90 days', CURRENT_TIMESTAMP),
-(6002, '网站后门检测策略-B', 'WAF', '10.0.2.200', 'siteScan', 1, CURRENT_TIMESTAMP - INTERVAL '60 days', CURRENT_TIMESTAMP),
-(6003, '漏洞补丁扫描策略-C', 'SCANNER', '10.0.3.300', 'vulScan', 0, CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP);
+(6001, '病毒扫描策略-A', true, 'alarmType', '/Malware/Virus', 'High', 'OK', true, 'manual', NULL,
+ CURRENT_TIMESTAMP - INTERVAL '90 days', CURRENT_TIMESTAMP,
+ '[{\"deviceConfig\":[{\"appId\":\"dasca-dbappsecurity-edrv6\"}],\"linkDeviceType\":\"主机安全管理系统（EDR）\",\"checked\":true,\"config\":[{\"scanTiming\":\"immediately\",\"scanScope\":\"full\",\"scanCycle\":0,\"scanTime\":\"\",\"scanPath\":\"\",\"action\":\"scan\",\"scanType\":[\"virus\"]}]}]', NULL),
+(6002, '网站后门检测策略-B', true, 'alarmType', '/WebAttack/WebshellUpload,/WebAttack/WebshellRequest', 'High', 'OK', true, 'manual', NULL,
+ CURRENT_TIMESTAMP - INTERVAL '60 days', CURRENT_TIMESTAMP,
+ '[{\"deviceConfig\":[{\"appId\":\"dasca-dbappsecurity-edrv6\"}],\"linkDeviceType\":\"主机安全管理系统（EDR）\",\"checked\":true,\"config\":[{\"scanTiming\":\"immediately\",\"scanScope\":\"full\",\"scanCycle\":0,\"scanTime\":\"\",\"scanPath\":\"\",\"action\":\"scan\",\"scanType\":[\"site\"]}]}]', NULL),
+(6003, '漏洞补丁扫描策略-C', true, 'alarmType', '/Exploit/SystemVul,/Exploit/SoftVul', 'Medium', 'FAIL', false, 'auto', NULL,
+ CURRENT_TIMESTAMP - INTERVAL '30 days', CURRENT_TIMESTAMP,
+ '[{\"deviceConfig\":[{\"appId\":\"dasca-dbappsecurity-ainta\"}],\"linkDeviceType\":\"入侵检测系统（IDS）\",\"checked\":true,\"config\":[{\"duration\":\"12\",\"prohibitObject\":\"攻击者\",\"action\":\"prohibit\"}]}]', NULL);
 
 -- ================================================================
 -- 主表：t_scan_history_detail（10条测试数据）

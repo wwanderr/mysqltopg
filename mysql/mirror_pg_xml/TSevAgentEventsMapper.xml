@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dbapp.xdr.mapper.TSevAgentEventsMapper">
+  <resultMap id="BaseResultMap" type="com.dbapp.xdr.bean.po.TSevAgentEvents">
+    <!--@mbg.generated-->
+    <!--@Table t_sev_agent_events-->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="agent_code" jdbcType="VARCHAR" property="agentCode" />
+    <result column="event_type" jdbcType="VARCHAR" property="eventType" />
+    <result column="status" jdbcType="VARCHAR" property="status" />
+    <result column="result" jdbcType="BOOLEAN" property="result" />
+    <result column="message" jdbcType="VARCHAR" property="message" />
+    <result column="data" jdbcType="LONGVARCHAR" property="data" />
+    <result column="event_time" jdbcType="TIMESTAMP" property="eventTime" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    id, agent_code, event_type, `status`, `result`, message, `data`, event_time
+  </sql>
+  <delete id="deleteByAgentCodeIn">
+        <!--@mbg.generated-->
+        delete from t_sev_agent_events
+        where agent_code in
+        <foreach close=")" collection="agentCodeCollection" index="index" item="item" open="(" separator=",">
+            #{item,jdbcType=VARCHAR}
+        </foreach>
+    </delete>
+  <delete id="deleteAll">
+        <!--@mbg.generated-->
+        delete from t_sev_agent_events
+    </delete>
+</mapper>

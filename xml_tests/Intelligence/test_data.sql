@@ -135,6 +135,65 @@ CURRENT_TIMESTAMP - INTERVAL '10 hours', CURRENT_TIMESTAMP - INTERVAL '2 hours',
 SELECT setval('t_intelligence_sub_asset_id_seq', (SELECT MAX(id) FROM t_intelligence_sub_asset), true);
 
 -- ==========================================
+-- 3. 为 subList 关联的资产/安全域表补充最小测试数据
+--    关联表：t_asset_info, t_ailpha_network_segment, t_ailpha_security_zone
+--    仅覆盖上面 t_intelligence_sub_asset 中出现的资产IP
+-- ==========================================
+
+-- 清理相关测试数据
+DELETE FROM "t_asset_info"
+WHERE asset_ip IN (
+    '192.168.10.50','192.168.10.51','192.168.10.52',
+    '192.168.20.100','192.168.20.101',
+    '192.168.30.50',
+    '192.168.40.10','192.168.40.11','192.168.40.12','192.168.40.13','192.168.40.14',
+    '192.168.50.100'
+);
+
+DELETE FROM "t_ailpha_network_segment"
+WHERE relation_type = 'SECURITY_ZONE'
+  AND relation_id IN ('SEC_DMZ','SEC_OFFICE','SEC_SERVER','SEC_PROD','SEC_CORE');
+
+DELETE FROM "t_ailpha_security_zone"
+WHERE id IN ('SEC_DMZ','SEC_OFFICE','SEC_SERVER','SEC_PROD','SEC_CORE');
+
+-- t_ailpha_security_zone：定义几个简单的安全域
+INSERT INTO "t_ailpha_security_zone"(id, name, description, icon_path, tag)
+VALUES
+('SEC_DMZ',    'DMZ区',    'Intelligence 测试数据', NULL, NULL),
+('SEC_OFFICE', '办公区',   'Intelligence 测试数据', NULL, NULL),
+('SEC_SERVER', '服务器区', 'Intelligence 测试数据', NULL, NULL),
+('SEC_PROD',   '生产区',   'Intelligence 测试数据', NULL, NULL),
+('SEC_CORE',   '核心区',   'Intelligence 测试数据', NULL, NULL);
+
+-- t_asset_info：为每个资产IP补充基础信息
+INSERT INTO "t_asset_info" (
+    asset_ip, asset_name, asset_type, asset_tags, "source", asset_ip_num
+) VALUES
+('192.168.10.50', 'C2-Web-01',     'Server',        '["威胁情报测试"]', '1', '192.168.10.50'),
+('192.168.10.51', 'C2-Web-02',     'Server',        '["威胁情报测试"]', '1', '192.168.10.51'),
+('192.168.10.52', 'C2-Web-03',     'Server',        '["威胁情报测试"]', '1', '192.168.10.52'),
+('192.168.20.100','Phishing-01',   'Server',        '["钓鱼站点"]',     '1', '192.168.20.100'),
+('192.168.20.101','Phishing-02',   'Server',        '["钓鱼站点"]',     '1', '192.168.20.101'),
+('192.168.30.50', 'Malware-Host',  'Server',        '["恶意软件分发"]', '1', '192.168.30.50'),
+('192.168.40.10', 'Scanner-01',    'Server',        '["扫描器"]',       '1', '192.168.40.10'),
+('192.168.40.11', 'Scanner-02',    'Server',        '["扫描器"]',       '1', '192.168.40.11'),
+('192.168.40.12', 'Scanner-03',    'Server',        '["扫描器"]',       '1', '192.168.40.12'),
+('192.168.40.13', 'Scanner-04',    'Server',        '["扫描器"]',       '1', '192.168.40.13'),
+('192.168.40.14', 'Scanner-05',    'Server',        '["扫描器"]',       '1', '192.168.40.14'),
+('192.168.50.100','APT-Target-01', 'CriticalHost',  '["APT关键资产"]',  '1', '192.168.50.100');
+
+-- t_ailpha_network_segment：为上述资产IP建立 SECURITY_ZONE 映射
+INSERT INTO "t_ailpha_network_segment" (
+    ip_type, relation_type, relation_id, first_ip, last_ip, network_type, content, "order"
+) VALUES
+('IPv4','SECURITY_ZONE','SEC_DMZ',    '192.168.10.50','192.168.10.52','IP','192.168.10.50-52',0),
+('IPv4','SECURITY_ZONE','SEC_OFFICE', '192.168.20.100','192.168.20.101','IP','192.168.20.100-101',0),
+('IPv4','SECURITY_ZONE','SEC_SERVER', '192.168.30.50','192.168.30.50','IP','192.168.30.50',0),
+('IPv4','SECURITY_ZONE','SEC_PROD',   '192.168.40.10','192.168.40.14','IP','192.168.40.10-14',0),
+('IPv4','SECURITY_ZONE','SEC_CORE',   '192.168.50.100','192.168.50.100','IP','192.168.50.100',0);
+
+-- ==========================================
 -- 验证：关联查询测试
 -- ==========================================
 SELECT 
