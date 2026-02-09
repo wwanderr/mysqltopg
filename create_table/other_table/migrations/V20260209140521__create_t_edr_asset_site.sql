@@ -1,0 +1,71 @@
+/*
+ * Table: t_edr_asset_site
+ * Generated: 2026-02-09 14:05:57
+ * Source: V20260204212300__init_table.sql
+ */
+
+DROP TABLE IF EXISTS "t_edr_asset_site";
+
+CREATE TABLE "t_edr_asset_site" (
+                                    "id" int8 NOT NULL DEFAULT nextval('t_edr_asset_site_id_seq'::regclass),
+                                    "ip" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+                                    "scan_batch_no" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+                                    "file" varchar(255) COLLATE "pg_catalog"."default" DEFAULT ''::character varying,
+                                    "time" varchar(255) COLLATE "pg_catalog"."default" DEFAULT ''::character varying,
+                                    "type" varchar(255) COLLATE "pg_catalog"."default" DEFAULT ''::character varying,
+                                    "created_at" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                    "updated_at" timestamp
+)
+;
+
+ALTER TABLE "t_edr_asset_site" OWNER TO "dbapp";
+
+COMMENT ON COLUMN "t_edr_asset_site"."id" IS '自增主键';
+
+COMMENT ON COLUMN "t_edr_asset_site"."ip" IS '资产ip';
+
+COMMENT ON COLUMN "t_edr_asset_site"."scan_batch_no" IS '批次编号';
+
+COMMENT ON COLUMN "t_edr_asset_site"."file" IS '网站后门文件';
+
+COMMENT ON COLUMN "t_edr_asset_site"."time" IS '发现时间';
+
+COMMENT ON COLUMN "t_edr_asset_site"."type" IS '后门类型';
+
+COMMENT ON COLUMN "t_edr_asset_site"."created_at" IS '记录创建时间';
+
+COMMENT ON COLUMN "t_edr_asset_site"."updated_at" IS '记录更新时间';
+
+BEGIN;
+COMMIT;
+
+DROP SEQUENCE IF EXISTS "t_edr_asset_site_id_seq";
+CREATE SEQUENCE "t_edr_asset_site_id_seq"
+    INCREMENT 1
+MINVALUE  1
+MAXVALUE 9223372036854775807
+START 1
+CACHE 1;
+ALTER SEQUENCE "t_edr_asset_site_id_seq" OWNER TO "dbapp";
+
+DROP FUNCTION IF EXISTS "on_update_current_timestamp_t_edr_asset_site"();
+CREATE OR REPLACE FUNCTION "on_update_current_timestamp_t_edr_asset_site"()
+  RETURNS "pg_catalog"."trigger" AS $BODY$
+BEGIN
+   NEW.updated_at = now();
+RETURN NEW;
+END;
+$BODY$
+LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION "on_update_current_timestamp_t_edr_asset_site"() OWNER TO "dbapp";
+
+CREATE TRIGGER "on_update_current_timestamp" BEFORE UPDATE ON "t_edr_asset_site"
+    FOR EACH ROW
+    EXECUTE PROCEDURE "on_update_current_timestamp_t_edr_asset_site"();
+
+ALTER TABLE "t_edr_asset_site" ADD CONSTRAINT "idx_92315_primary" PRIMARY KEY ("id");
+
+CREATE INDEX "idx_92315_table.hash.key.ip" ON "t_edr_asset_site" USING btree (
+    "ip" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
+    );

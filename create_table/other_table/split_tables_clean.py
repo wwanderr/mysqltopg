@@ -190,9 +190,15 @@ def main():
     print(f"Found {len(table_names)} tables")
     
     # 为每个表生成文件
+    # 获取当前日期和时间
+    now = datetime.now()
+    # 格式：YYYYMMDDHHMM + 两位序号
+    # 例如：20260209140400 (2026年02月09日14:04分 + 00序号)
+    base_timestamp_new = now.strftime('%Y%m%d%H%M')
+    
     for idx, table_name in enumerate(table_names):
-        # 生成时间戳（递增秒数）
-        timestamp = f"{base_timestamp}{idx:02d}"
+        # 生成时间戳（当前日期时间 + 两位序号）
+        timestamp = f"{base_timestamp_new}{idx:02d}"
         filename = f"V{timestamp}__create_{table_name}.sql"
         filepath = os.path.join(output_dir, filename)
         
