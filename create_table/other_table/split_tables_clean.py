@@ -98,11 +98,13 @@ def extract_table_content(content, table_name):
         result_lines.append(begin_commit_match.group(0).strip())
     
     # 在整个文件中查找序列（table_name_id_seq）
-    seq_pattern = rf'(?s)(DROP\s+SEQUENCE\s+IF\s+EXISTS\s+"?{re.escape(table_name)}_id_seq.*?ALTER\s+SEQUENCE\s+"?{re.escape(table_name)}_id_seq"[^;]+;)(?=\s*(?:--|DROP|CREATE))'
+    # 注意：序列必须在 CREATE TABLE 之前创建，否则 nextval() 会报错
+    seq_pattern = rf'(?s)(DROP\s+SEQUENCE\s+IF\s+EXISTS\s+"?{re.escape(table_name)}_id_seq".*?ALTER\s+SEQUENCE\s+"?{re.escape(table_name)}_id_seq"[^;]+;)(?=\s*(?:--|DROP|CREATE))'
     seq_match = re.search(seq_pattern, content, re.IGNORECASE | re.DOTALL)
     if seq_match:
         seq_content = seq_match.group(1).strip()
-        result_lines.append(seq_content)
+        # 序列相关语句放在最前面，确保在 CREATE TABLE 之前执行
+        result_lines.insert(0, seq_content)
     
     # 在整个文件中查找函数（on_update_current_timestamp_table_name）
     func_pattern = rf'(?s)(DROP\s+FUNCTION\s+IF\s+EXISTS\s+"?on_update_current_timestamp_{re.escape(table_name)}"?.*?ALTER\s+FUNCTION\s+"?on_update_current_timestamp_{re.escape(table_name)}"[^;]+;)(?=\s*(?:--|DROP|CREATE))'
