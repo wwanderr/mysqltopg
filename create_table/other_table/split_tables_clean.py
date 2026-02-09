@@ -99,7 +99,8 @@ def extract_table_content(content, table_name):
     
     # 在整个文件中查找序列（table_name_id_seq）
     # 注意：序列必须在 CREATE TABLE 之前创建，否则 nextval() 会报错
-    seq_pattern = rf'(?s)(DROP\s+SEQUENCE\s+IF\s+EXISTS\s+"?{re.escape(table_name)}_id_seq".*?ALTER\s+SEQUENCE\s+"?{re.escape(table_name)}_id_seq"[^;]+;)(?=\s*(?:--|DROP|CREATE))'
+    # 同时要包含 OWNED BY 和 SELECT setval(...)，保持与原始 init 脚本语义一致
+    seq_pattern = rf'(?s)(DROP\s+SEQUENCE\s+IF\s+EXISTS\s+"?{re.escape(table_name)}_id_seq"?.*?SELECT\s+setval\(\'"{re.escape(table_name)}_id_seq"\'[^;]*\);)'
     seq_match = re.search(seq_pattern, content, re.IGNORECASE | re.DOTALL)
     if seq_match:
         seq_content = seq_match.group(1).strip()
